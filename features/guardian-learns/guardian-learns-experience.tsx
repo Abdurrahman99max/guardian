@@ -106,9 +106,9 @@ function GuardianLearnsExperience() {
   }
 
   return (
-    <main className="bg-foundation min-h-screen px-3 py-3 sm:px-6 sm:py-6">
-      <div className="max-w-content mx-auto flex flex-col gap-6">
-        <header className="rounded-card border-border-soft bg-surface shadow-card flex items-center justify-between border px-5 py-4 sm:px-6">
+    <main className="bg-foundation min-h-screen px-4 py-5 sm:px-6 sm:py-8">
+      <div className="max-w-content mx-auto flex flex-col gap-8">
+        <header className="flex items-center justify-between px-1 py-1">
           <div className="flex items-center gap-3">
             <span aria-hidden className="bg-guardian-blue size-2.5 rounded-full" />
             <span className="text-text-primary text-sm font-semibold tracking-[0.18em] uppercase">
@@ -118,7 +118,7 @@ function GuardianLearnsExperience() {
           <Badge variant="learning">Learning</Badge>
         </header>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] xl:gap-12">
           <section aria-live="polite" className="min-w-0">
             <AnimatePresence mode="wait">
               {view === 'introduction' && (
@@ -158,14 +158,16 @@ function GuardianLearnsExperience() {
             </AnimatePresence>
           </section>
 
-          <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="px-1">
-              <p className="text-text-primary text-sm font-semibold">Understanding</p>
-              <p className="text-text-secondary mt-1 text-sm leading-6">
+          <aside className="space-y-3 lg:sticky lg:top-8">
+            <div className="border-border-soft/60 border-b px-1 pb-4">
+              <p className="text-text-primary text-sm font-semibold tracking-[-0.01em]">
+                Understanding
+              </p>
+              <p className="text-text-secondary mt-1.5 text-sm leading-6">
                 Guardian is building a working view of your company.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className="divide-border-soft/60 divide-y">
               {understandingAreas.map((area) => (
                 <UnderstandingCardItem
                   key={area.id}
@@ -219,8 +221,8 @@ function GuardianLearnsExperience() {
 function Introduction({ onBegin }: { onBegin: () => void }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
-      <Card>
-        <CardHeader className="gap-8 p-6 sm:p-10">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="gap-6 p-1 sm:p-2">
           <Badge variant="learning" className="w-fit">
             A considered start
           </Badge>
@@ -228,7 +230,7 @@ function Introduction({ onBegin }: { onBegin: () => void }) {
             <p className="text-guardian-blue text-sm font-medium">
               Guardian learns before it advises.
             </p>
-            <CardTitle className="text-4xl tracking-[-0.045em] sm:text-5xl">
+            <CardTitle className="text-4xl leading-[1.06] tracking-[-0.05em] sm:text-[3.25rem]">
               Before I can help with strategic decisions, I need to understand what you&apos;re
               building.
             </CardTitle>
@@ -238,10 +240,8 @@ function Introduction({ onBegin }: { onBegin: () => void }) {
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6 sm:px-10 sm:pb-10">
-          <Button size="lg" onClick={onBegin}>
-            Begin with what matters
-          </Button>
+        <CardContent className="px-1 pt-1 pb-1 sm:px-2">
+          <Button onClick={onBegin}>Begin with what matters</Button>
         </CardContent>
       </Card>
     </motion.div>
@@ -265,11 +265,11 @@ function PromptCard({
 }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
-      <Card>
-        <CardHeader className="gap-5 p-6 sm:p-10">
+      <Card className="overflow-hidden">
+        <CardHeader className="gap-4 px-6 py-6 sm:px-8 sm:py-8">
           <Badge className="w-fit">Building understanding: {areaLabel}</Badge>
           <div className="space-y-3">
-            <CardTitle className="max-w-2xl text-3xl tracking-[-0.035em] sm:text-4xl">
+            <CardTitle className="max-w-2xl text-3xl leading-[1.12] tracking-[-0.04em] sm:text-[2.5rem]">
               {prompt.prompt}
             </CardTitle>
             <p className="text-text-secondary max-w-xl text-base leading-7">
@@ -277,16 +277,25 @@ function PromptCard({
             </p>
           </div>
         </CardHeader>
-        <CardContent className="space-y-5 px-6 pb-6 sm:px-10 sm:pb-10">
-          <Textarea
-            value={response}
-            onChange={(event) => onResponseChange(event.target.value)}
-            placeholder="Share what feels most important."
-            autoFocus
-          />
+        <CardContent className="bg-foundation/45 border-border-soft/45 space-y-4 border-t px-6 py-5 sm:px-8 sm:py-6">
+          <div className="rounded-writing border-border-soft/55 bg-surface focus-within:border-guardian-blue/50 focus-within:shadow-card duration-standard border transition-[border-color,box-shadow]">
+            <div className="flex items-center justify-between px-4 pt-3">
+              <span className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
+                Your perspective
+              </span>
+              <span className="text-learning text-xs">A working thought is enough.</span>
+            </div>
+            <Textarea
+              className="min-h-36 border-0 bg-transparent px-4 pt-2 pb-4 shadow-none focus:border-0"
+              value={response}
+              onChange={(event) => onResponseChange(event.target.value)}
+              placeholder="Share what feels most important."
+              autoFocus
+            />
+          </div>
           <div className="flex items-center justify-between gap-4">
-            <p className="text-text-secondary text-sm">
-              Guardian will reflect this back as its current understanding.
+            <p className="text-text-secondary text-xs leading-5">
+              Guardian will reflect this as a current interpretation.
             </p>
             <Button onClick={onSubmit}>
               {editing ? 'Update understanding' : 'Share with Guardian'}
@@ -309,8 +318,8 @@ function Reflection({
 }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
-      <Card>
-        <CardHeader className="gap-6 p-6 sm:p-10">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="gap-5 p-1 sm:p-2">
           <motion.div
             className="bg-guardian-blue/10 text-guardian-blue flex size-11 items-center justify-center rounded-full"
             variants={fadeUp}
@@ -319,7 +328,7 @@ function Reflection({
           </motion.div>
           <div className="space-y-3">
             <p className="text-guardian-blue text-sm font-medium">Understanding updated</p>
-            <CardTitle className="max-w-xl text-3xl tracking-[-0.035em] sm:text-4xl">
+            <CardTitle className="max-w-xl text-3xl leading-[1.12] tracking-[-0.04em] sm:text-[2.5rem]">
               {message}
             </CardTitle>
             <p className="text-text-secondary max-w-xl text-base leading-7">
@@ -328,7 +337,7 @@ function Reflection({
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6 sm:px-10 sm:pb-10">
+        <CardContent className="px-1 pt-2 pb-1 sm:px-2">
           <Button onClick={onContinue}>
             {final ? 'Review my understanding' : 'Continue learning'}
           </Button>
@@ -350,9 +359,9 @@ function Summary({
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card>
-        <CardHeader className="gap-4 p-6 sm:p-10">
+        <CardHeader className="gap-4 px-6 py-6 sm:px-8 sm:py-8">
           <p className="text-guardian-blue text-sm font-medium">My Current Understanding</p>
-          <CardTitle className="text-4xl tracking-[-0.045em] sm:text-5xl">
+          <CardTitle className="text-4xl leading-[1.06] tracking-[-0.05em] sm:text-[3.25rem]">
             Here is the working picture I&apos;ve built so far.
           </CardTitle>
           <p className="text-text-secondary max-w-2xl text-base leading-7">
@@ -360,11 +369,11 @@ function Summary({
             confident in some areas than others.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4 px-6 pb-6 sm:px-10 sm:pb-10">
+        <CardContent className="space-y-3 px-6 pb-6 sm:px-8 sm:pb-8">
           {understandingAreas.map((area) => (
             <div
               key={area.id}
-              className="rounded-control border-border-soft bg-foundation border p-4"
+              className="rounded-control border-border-soft/55 bg-foundation/55 border px-4 py-3.5"
             >
               <div className="flex items-center justify-between gap-4">
                 <p className="text-text-primary font-medium">{area.label}</p>
@@ -376,7 +385,7 @@ function Summary({
               </p>
             </div>
           ))}
-          <div className="border-border-soft mt-8 border-t pt-6">
+          <div className="border-border-soft/60 mt-6 border-t pt-5">
             <p className="text-text-primary text-lg font-semibold">
               Does this reflect your company accurately?
             </p>
@@ -398,14 +407,14 @@ function Summary({
 function Transition() {
   return (
     <motion.div initial="hidden" animate="visible" variants={cardReveal}>
-      <Card>
-        <CardHeader className="gap-6 p-6 sm:p-10">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="gap-5 p-1 sm:p-2">
           <div className="bg-success/10 text-success flex size-11 items-center justify-center rounded-full">
             <Check size={20} />
           </div>
           <div className="space-y-3">
             <p className="text-guardian-blue text-sm font-medium">Initial understanding created</p>
-            <CardTitle className="max-w-xl text-4xl tracking-[-0.045em] sm:text-5xl">
+            <CardTitle className="max-w-xl text-4xl leading-[1.06] tracking-[-0.05em] sm:text-[3.25rem]">
               We&apos;ve built an initial understanding together.
             </CardTitle>
             <p className="text-text-secondary max-w-xl text-base leading-7">
@@ -413,7 +422,7 @@ function Transition() {
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6 sm:px-10 sm:pb-10">
+        <CardContent className="px-1 pt-2 pb-1 sm:px-2">
           <Button disabled>Create account to continue</Button>
           <p className="text-text-secondary mt-3 text-sm">
             Account creation will be available in a future mission.
@@ -446,61 +455,61 @@ function UnderstandingCardItem({
       animate={latest ? { y: [0, -2, 0] } : undefined}
       transition={{ duration: 0.32 }}
     >
-      <Card
+      <div
         className={cn(
-          'duration-standard transition-colors',
-          card ? 'border-guardian-blue/20' : 'bg-surface/70 shadow-none',
+          'group duration-standard relative py-4 pl-4 transition-colors',
+          card ? 'before:bg-guardian-blue/75' : 'before:bg-border-soft',
+          'before:absolute before:inset-y-4 before:left-0 before:w-px',
         )}
       >
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-text-primary text-sm font-semibold">{area.label}</p>
-              <p className="text-text-secondary mt-1 text-sm leading-6">
-                {card ? card.summary : area.description}
-              </p>
-            </div>
-            {card && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Manage ${area.label} understanding`}
-                  >
-                    <MoreHorizontal size={18} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => onEdit(card)}>
-                    <Pencil size={15} /> Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onAddContext(card.id)}>
-                    <Plus size={15} /> Add context
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-risk focus:text-risk"
-                    onSelect={() => onDelete(card)}
-                  >
-                    <Trash2 size={15} /> Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-text-primary text-sm font-semibold">{area.label}</p>
+            <p className="text-text-secondary mt-1 text-sm leading-6">
+              {card ? card.summary : area.description}
+            </p>
           </div>
           {card && (
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <ConfidenceBadge confidence={area.confidence} />
-              <span className="text-text-secondary text-xs">Understanding updated</span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="-mt-2 -mr-2 opacity-70 transition-opacity group-hover:opacity-100"
+                  aria-label={`Manage ${area.label} understanding`}
+                >
+                  <MoreHorizontal size={17} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => onEdit(card)}>
+                  <Pencil size={15} /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onAddContext(card.id)}>
+                  <Plus size={15} /> Add context
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-risk focus:text-risk"
+                  onSelect={() => onDelete(card)}
+                >
+                  <Trash2 size={15} /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-          {card && card.context.length > 0 && (
-            <p className="border-border-soft text-text-secondary mt-3 border-t pt-3 text-xs leading-5">
-              Context: {card.context.join(' · ')}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        {card && (
+          <div className="mt-2.5 flex items-center justify-between gap-3">
+            <ConfidenceBadge confidence={area.confidence} />
+            <span className="text-text-secondary text-xs">Understanding updated</span>
+          </div>
+        )}
+        {card && card.context.length > 0 && (
+          <p className="border-border-soft/60 text-text-secondary mt-3 border-t pt-3 text-xs leading-5">
+            Context: {card.context.join(' · ')}
+          </p>
+        )}
+      </div>
     </motion.div>
   );
 }

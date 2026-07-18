@@ -9,16 +9,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-guardian-blue text-surface shadow-card hover:bg-guardian-blue/90',
+        primary:
+          'bg-guardian-blue text-surface shadow-card hover:bg-guardian-blue/90 hover:shadow-floating',
         secondary: 'bg-surface text-text-primary shadow-card hover:bg-foundation',
-        outline: 'border border-border-soft bg-transparent text-text-primary hover:bg-surface',
-        ghost: 'text-text-secondary hover:bg-surface hover:text-text-primary',
+        outline: 'border border-border-soft/70 bg-transparent text-text-primary hover:bg-surface',
+        ghost: 'text-text-secondary hover:bg-surface/80 hover:text-text-primary',
       },
       size: {
         sm: 'h-9 px-3 text-sm',
-        default: 'h-11 px-4 text-sm',
-        lg: 'h-12 px-5 text-base',
-        icon: 'size-11',
+        default: 'h-10 px-3.5 text-sm',
+        lg: 'h-11 px-4 text-base',
+        icon: 'size-10',
       },
     },
     defaultVariants: { variant: 'primary', size: 'default' },

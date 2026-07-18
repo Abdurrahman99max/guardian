@@ -86,7 +86,7 @@ export const learningPrompts: LearningPrompt[] = [
   {
     id: 'current-stage',
     areaId: 'current-stage',
-    prompt: 'What is most true about the company’s current stage?',
+    prompt: "What is most true about the company's current stage?",
     supportingText: 'For example: validating demand, building, selling, or finding repeatability.',
     reflection: 'That gives me better context for the decisions that are likely to matter next.',
     synthesize: (response) => `The company is currently ${response}.`,

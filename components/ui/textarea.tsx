@@ -6,7 +6,7 @@ function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaEl
   return (
     <textarea
       className={cn(
-        'rounded-control border-border-soft bg-surface text-text-primary placeholder:text-text-secondary duration-fast focus:border-guardian-blue min-h-28 w-full resize-y border px-3 py-2.5 text-sm transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+        'rounded-writing border-border-soft/60 bg-surface text-text-primary placeholder:text-text-secondary duration-fast focus:border-guardian-blue min-h-28 w-full resize-y border px-4 py-3 text-[15px] leading-7 transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
