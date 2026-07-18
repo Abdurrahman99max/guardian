@@ -1,5 +1,5 @@
-import { FoundationWelcome } from '@/components/shared/foundation-welcome';
+import { GuardianLearnsExperience } from '@/features/guardian-learns';
 
 export default function Home() {
-  return <FoundationWelcome />;
+  return <GuardianLearnsExperience />;
 }
