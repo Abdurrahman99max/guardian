@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, ChevronDown, MoreHorizontal, Pencil, Plus, ScanSearch, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { cardReveal, fadeUp } from '@/lib/motion/presets';
+import { cardReveal } from '@/lib/motion/presets';
 import { cn } from '@/lib/utils';
 
 import { learningPrompts, understandingAreas, type UnderstandingCard } from './model';
@@ -120,7 +120,6 @@ function GuardianLearnsExperience() {
               Guardian
             </span>
           </div>
-          <Badge variant="learning">Learning</Badge>
         </header>
 
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
@@ -353,12 +352,6 @@ function Reflection({
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card className="border-0 bg-transparent shadow-none">
         <CardHeader className="gap-4 p-1 sm:p-2">
-          <motion.div
-            className="bg-guardian-blue/10 text-guardian-blue flex size-11 items-center justify-center rounded-full"
-            variants={fadeUp}
-          >
-            <ScanSearch size={19} strokeWidth={1.75} />
-          </motion.div>
           <div className="space-y-2.5">
             <p className="text-guardian-blue text-sm font-medium">Understanding updated</p>
             <CardTitle className="max-w-xl text-[1.75rem] leading-[1.15] tracking-[-0.035em] sm:text-[2.1rem]">
@@ -392,9 +385,9 @@ function Summary({
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card>
         <CardHeader className="gap-3 px-5 py-5 sm:px-7 sm:py-6">
-          <p className="text-guardian-blue text-sm font-medium">My Current Understanding</p>
+          <p className="text-guardian-blue text-sm font-medium">My current understanding</p>
           <CardTitle className="text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
-            Here is the working picture I&apos;ve built so far.
+            Here is the working picture I&apos;ve built.
           </CardTitle>
           <p className="text-text-secondary max-w-xl text-[15px] leading-6">
             Based on what you&apos;ve shared, this is my initial interpretation. I&apos;m more
@@ -423,9 +416,9 @@ function Summary({
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button size="sm" onClick={onAccurate}>
-                <Check size={16} /> Yes, that&apos;s accurate
+                Yes, that&apos;s accurate
               </Button>
-              <Button size="sm" variant="outline" onClick={onChange}>
+              <Button size="sm" variant="ghost" className="px-1" onClick={onChange}>
                 I&apos;d like to change something
               </Button>
             </div>
@@ -440,26 +433,28 @@ function Transition() {
   return (
     <motion.div initial="hidden" animate="visible" variants={cardReveal}>
       <Card className="border-0 bg-transparent shadow-none">
-        <CardHeader className="gap-4 p-1 sm:p-2">
-          <div className="bg-success/10 text-success flex size-11 items-center justify-center rounded-full">
-            <Check size={20} />
+        <CardHeader className="gap-3 p-1 sm:p-2">
+          <div className="bg-success/10 text-success flex size-9 items-center justify-center rounded-full">
+            <Check size={17} />
           </div>
           <div className="space-y-2.5">
-            <p className="text-guardian-blue text-sm font-medium">Initial understanding created</p>
+            <p className="text-guardian-blue text-sm font-medium">
+              An initial understanding is in place.
+            </p>
             <CardTitle className="max-w-xl text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
-              We&apos;ve built an initial understanding together.
+              Keep building this understanding together.
             </CardTitle>
             <p className="text-text-secondary max-w-lg text-[15px] leading-6">
-              Create your account so I can continue learning alongside your company.
+              Create an account so Guardian can continue learning alongside your company.
             </p>
           </div>
         </CardHeader>
         <CardContent className="px-1 pt-2 pb-1 sm:px-2">
-          <Button size="sm" disabled>
+          <Button size="sm" variant="outline" disabled>
             Create account to continue
           </Button>
           <p className="text-text-secondary mt-3 text-sm">
-            Account creation will be available in a future mission.
+            Account creation is not available in this demo.
           </p>
         </CardContent>
       </Card>
