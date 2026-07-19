@@ -21,12 +21,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  GuardianIntelligenceView,
+  type UnderstandingSnapshot,
+} from '@/features/guardian-intelligence';
 import { cardReveal } from '@/lib/motion/presets';
 import { cn } from '@/lib/utils';
 
 import { learningPrompts, understandingAreas, type UnderstandingCard } from './model';
 
-type View = 'introduction' | 'learning' | 'reflection' | 'summary' | 'transition';
+type View = 'introduction' | 'learning' | 'reflection' | 'summary' | 'transition' | 'intelligence';
 type ResumeDestination = { type: 'prompt'; index: number } | { type: 'summary' } | null;
 
 function GuardianLearnsExperience() {
@@ -46,6 +50,10 @@ function GuardianLearnsExperience() {
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
   const contextCard = cards.find((card) => card.id === contextCardId);
   const cardsByArea = useMemo(() => new Map(cards.map((card) => [card.areaId, card])), [cards]);
+  const understandingSnapshot: UnderstandingSnapshot[] = cards.map(({ areaId, summary }) => ({
+    areaId,
+    summary,
+  }));
   const focusAreaId =
     view === 'learning'
       ? activePrompt?.areaId
@@ -152,6 +160,15 @@ function GuardianLearnsExperience() {
     setContextCardId(null);
   }
 
+  if (view === 'intelligence') {
+    return (
+      <GuardianIntelligenceView
+        understanding={understandingSnapshot}
+        onReturnToLearning={() => setView('summary')}
+      />
+    );
+  }
+
   return (
     <main className="bg-foundation min-h-screen px-4 py-5 sm:px-6 sm:py-8">
       <div className="max-w-conversation mx-auto flex flex-col gap-7">
@@ -202,7 +219,9 @@ function GuardianLearnsExperience() {
                   onRevisit={revisitArea}
                 />
               )}
-              {view === 'transition' && <Transition key="transition" />}
+              {view === 'transition' && (
+                <Transition key="transition" onExploreReasoning={() => setView('intelligence')} />
+              )}
             </AnimatePresence>
           </section>
 
@@ -515,7 +534,7 @@ function Summary({
   );
 }
 
-function Transition() {
+function Transition({ onExploreReasoning }: { onExploreReasoning: () => void }) {
   return (
     <motion.div initial="hidden" animate="visible" variants={cardReveal}>
       <Card className="border-0 bg-transparent shadow-none">
@@ -528,19 +547,20 @@ function Transition() {
               An initial understanding is in place.
             </p>
             <CardTitle className="max-w-xl text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
-              Keep building this understanding together.
+              Guardian is ready to begin reasoning with you.
             </CardTitle>
             <p className="text-text-secondary max-w-lg text-base leading-6">
-              Create an account so Guardian can continue learning alongside your company.
+              I have enough context to form useful strategic hypotheses. I&apos;ll keep the
+              uncertainty visible as the model evolves.
             </p>
           </div>
         </CardHeader>
         <CardContent className="px-1 pt-2 pb-1 sm:px-2">
-          <Button size="sm" variant="outline" disabled>
-            Create account to continue
+          <Button size="sm" onClick={onExploreReasoning}>
+            See current reasoning
           </Button>
           <p className="text-text-secondary mt-3 text-sm">
-            Account creation is not available in this demo.
+            Account creation comes after Guardian has demonstrated lasting value.
           </p>
         </CardContent>
       </Card>
