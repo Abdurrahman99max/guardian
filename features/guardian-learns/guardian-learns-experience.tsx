@@ -43,6 +43,10 @@ function GuardianLearnsExperience() {
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
   const contextCard = cards.find((card) => card.id === contextCardId);
   const cardsByArea = useMemo(() => new Map(cards.map((card) => [card.areaId, card])), [cards]);
+  const focusAreaId =
+    view === 'learning'
+      ? activePrompt?.areaId
+      : cards.find((card) => card.id === latestCardId)?.areaId;
 
   function beginLearning() {
     setView('learning');
@@ -119,7 +123,7 @@ function GuardianLearnsExperience() {
           <Badge variant="learning">Learning</Badge>
         </header>
 
-        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_16rem] xl:gap-10">
+        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
           <section aria-live="polite" className="min-w-0">
             <AnimatePresence mode="wait">
               {view === 'introduction' && (
@@ -187,7 +191,7 @@ function GuardianLearnsExperience() {
                   Understanding
                 </p>
                 <p className="text-text-secondary mt-1 text-[13px] leading-5">
-                  Guardian is building a working view of your company.
+                  A working model, shaped by what you share.
                 </p>
               </div>
               <div className="divide-border-soft/60 divide-y">
@@ -196,6 +200,7 @@ function GuardianLearnsExperience() {
                     key={area.id}
                     area={area}
                     card={cardsByArea.get(area.id)}
+                    focused={area.id === focusAreaId}
                     latest={latestCardId === cardsByArea.get(area.id)?.id}
                     onEdit={editCard}
                     onDelete={deleteCard}
@@ -246,26 +251,25 @@ function Introduction({ onBegin }: { onBegin: () => void }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card className="border-0 bg-transparent shadow-none">
-        <CardHeader className="gap-6 p-1 sm:p-2">
-          <Badge variant="learning" className="w-fit">
-            A considered start
-          </Badge>
+        <CardHeader className="gap-4 p-1 sm:p-2">
           <div className="max-w-xl space-y-3">
             <p className="text-guardian-blue text-sm font-medium">
               Guardian learns before it advises.
             </p>
-            <CardTitle className="text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
+            <CardTitle className="text-[1.875rem] leading-[1.12] tracking-[-0.045em] sm:text-[2.5rem]">
               Before I can help with strategic decisions, I need to understand what you&apos;re
               building.
             </CardTitle>
-            <p className="text-text-secondary max-w-lg text-[15px] leading-6">
-              You do not need to explain everything today. We&apos;ll build an initial understanding
-              now, then continue learning alongside your company over time.
+            <p className="text-text-secondary max-w-md text-[15px] leading-6">
+              I need some context before I can help you decide what deserves attention. You do not
+              need to explain everything today.
             </p>
           </div>
         </CardHeader>
         <CardContent className="px-1 pt-1 pb-1 sm:px-2">
-          <Button onClick={onBegin}>Begin with what matters</Button>
+          <Button size="sm" onClick={onBegin}>
+            Begin with what matters
+          </Button>
         </CardContent>
       </Card>
     </motion.div>
@@ -291,7 +295,9 @@ function PromptCard({
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card className="overflow-hidden">
         <CardHeader className="gap-3 px-5 py-5 sm:px-7 sm:py-6">
-          <Badge className="w-fit">Building understanding: {areaLabel}</Badge>
+          <p className="text-guardian-blue text-sm font-medium">
+            Guardian is learning about your {areaLabel.toLowerCase()}.
+          </p>
           <div className="space-y-2.5">
             <CardTitle className="max-w-xl text-[1.75rem] leading-[1.15] tracking-[-0.035em] sm:text-[2.1rem]">
               {prompt.prompt}
@@ -302,27 +308,29 @@ function PromptCard({
           </div>
         </CardHeader>
         <CardContent className="bg-foundation/45 border-border-soft/45 space-y-3 border-t px-5 py-4 sm:px-7 sm:py-5">
-          <div className="rounded-writing bg-surface focus-within:ring-guardian-blue/15 duration-standard ring-1 ring-transparent transition-[box-shadow] focus-within:ring-4">
-            <div className="flex items-center justify-between px-4 pt-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
               <span className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
                 Your perspective
               </span>
-              <span className="text-learning text-xs">A working thought is enough.</span>
+              <span className="text-text-secondary text-xs">A working thought is enough.</span>
             </div>
-            <Textarea
-              className="min-h-32 resize-none border-0 bg-transparent px-4 pt-2 pb-3 shadow-none focus:border-0"
-              aria-label="Your perspective"
-              value={response}
-              onChange={(event) => onResponseChange(event.target.value)}
-              placeholder="Share what feels most important."
-              autoFocus
-            />
+            <div className="rounded-writing bg-surface focus-within:ring-guardian-blue/15 duration-standard ring-border-soft/45 ring-1 transition-[box-shadow] focus-within:ring-4">
+              <Textarea
+                className="min-h-28 resize-none border-0 bg-transparent px-4 py-3 shadow-none focus:border-0"
+                aria-label="Your perspective"
+                value={response}
+                onChange={(event) => onResponseChange(event.target.value)}
+                placeholder="Share what feels most important."
+                autoFocus
+              />
+            </div>
           </div>
           <div className="flex items-center justify-between gap-4">
             <p className="text-text-secondary text-xs leading-5">
               Guardian will reflect this as a current interpretation.
             </p>
-            <Button onClick={onSubmit}>
+            <Button size="sm" onClick={onSubmit}>
               {editing ? 'Update understanding' : 'Share with Guardian'}
             </Button>
           </div>
@@ -356,14 +364,13 @@ function Reflection({
             <CardTitle className="max-w-xl text-[1.75rem] leading-[1.15] tracking-[-0.035em] sm:text-[2.1rem]">
               {message}
             </CardTitle>
-            <p className="text-text-secondary max-w-lg text-[15px] leading-6">
-              This is a working interpretation, not a final conclusion. You can refine it at any
-              time.
+            <p className="text-text-secondary max-w-md text-[15px] leading-6">
+              This is a working interpretation. You can refine it whenever more context matters.
             </p>
           </div>
         </CardHeader>
         <CardContent className="px-1 pt-2 pb-1 sm:px-2">
-          <Button onClick={onContinue}>
+          <Button size="sm" onClick={onContinue}>
             {final ? 'Review my understanding' : 'Continue learning'}
           </Button>
         </CardContent>
@@ -394,7 +401,7 @@ function Summary({
             confident in some areas than others.
           </p>
         </CardHeader>
-        <CardContent className="space-y-2.5 px-5 pb-5 sm:px-7 sm:pb-7">
+        <CardContent className="grid gap-2.5 px-5 pb-5 sm:grid-cols-2 sm:px-7 sm:pb-7">
           {understandingAreas.map((area) => (
             <div
               key={area.id}
@@ -410,15 +417,15 @@ function Summary({
               </p>
             </div>
           ))}
-          <div className="border-border-soft/60 mt-5 border-t pt-4">
+          <div className="border-border-soft/60 mt-2 border-t pt-4 sm:col-span-2">
             <p className="text-text-primary text-lg font-semibold">
               Does this reflect your company accurately?
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button onClick={onAccurate}>
+              <Button size="sm" onClick={onAccurate}>
                 <Check size={16} /> Yes, that&apos;s accurate
               </Button>
-              <Button variant="outline" onClick={onChange}>
+              <Button size="sm" variant="outline" onClick={onChange}>
                 I&apos;d like to change something
               </Button>
             </div>
@@ -448,7 +455,9 @@ function Transition() {
           </div>
         </CardHeader>
         <CardContent className="px-1 pt-2 pb-1 sm:px-2">
-          <Button disabled>Create account to continue</Button>
+          <Button size="sm" disabled>
+            Create account to continue
+          </Button>
           <p className="text-text-secondary mt-3 text-sm">
             Account creation will be available in a future mission.
           </p>
@@ -461,6 +470,7 @@ function Transition() {
 function UnderstandingCardItem({
   area,
   card,
+  focused,
   latest,
   onEdit,
   onDelete,
@@ -468,6 +478,7 @@ function UnderstandingCardItem({
 }: {
   area: (typeof understandingAreas)[number];
   card?: UnderstandingCard;
+  focused: boolean;
   latest: boolean;
   onEdit: (card: UnderstandingCard) => void;
   onDelete: (card: UnderstandingCard) => void;
@@ -480,19 +491,24 @@ function UnderstandingCardItem({
       animate={latest ? { y: [0, -2, 0] } : undefined}
       transition={{ duration: 0.32 }}
     >
-      <div
-        className={cn(
-          'group duration-standard relative py-3.5 pl-3.5 transition-colors',
-          card ? 'before:bg-guardian-blue/75' : 'before:bg-border-soft',
-          'before:absolute before:inset-y-3.5 before:left-0 before:w-px',
-        )}
-      >
+      <div className={cn('group relative py-3 pl-3.5', focused && 'bg-surface/45')}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-text-primary text-sm font-semibold">{area.label}</p>
-            <p className="text-text-secondary mt-1 text-[13px] leading-5">
-              {card ? card.summary : area.description}
+            <p className="text-text-primary text-sm font-semibold">
+              <span
+                aria-hidden
+                className={cn(
+                  'mr-2 inline-block size-1.5 rounded-full align-middle',
+                  card ? 'bg-guardian-blue' : 'bg-border-soft',
+                )}
+              />
+              {area.label}
             </p>
+            {(focused || card) && (
+              <p className="text-text-secondary mt-1.5 text-[13px] leading-5">
+                {card ? card.summary : area.description}
+              </p>
+            )}
           </div>
           {card && (
             <DropdownMenu>
@@ -523,11 +539,8 @@ function UnderstandingCardItem({
             </DropdownMenu>
           )}
         </div>
-        {card && (
-          <div className="mt-2.5 flex items-center justify-between gap-3">
-            <ConfidenceBadge confidence={area.confidence} />
-            <span className="text-text-secondary text-xs">Understanding updated</span>
-          </div>
+        {latest && (
+          <p className="text-guardian-blue mt-2 text-xs font-medium">Understanding updated</p>
         )}
         {card && card.context.length > 0 && (
           <p className="border-border-soft/60 text-text-secondary mt-3 border-t pt-3 text-xs leading-5">

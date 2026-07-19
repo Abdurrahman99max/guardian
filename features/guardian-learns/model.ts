@@ -64,7 +64,7 @@ export const learningPrompts: LearningPrompt[] = [
     prompt: 'What problem is important enough for your company to solve?',
     supportingText: 'Start with the friction you believe should no longer exist.',
     reflection: 'That gives me a clearer view of the problem at the center of your company.',
-    synthesize: (response) => `The company is focused on reducing ${response}.`,
+    synthesize: (response) => response,
   },
   {
     id: 'customer',
@@ -72,7 +72,7 @@ export const learningPrompts: LearningPrompt[] = [
     prompt: 'Who experiences this problem most directly?',
     supportingText: 'A useful answer identifies the person or team carrying the cost today.',
     reflection: 'That helps clarify whose decisions and constraints Guardian should understand.',
-    synthesize: (response) => `The initial customer focus is ${response}.`,
+    synthesize: (response) => response,
   },
   {
     id: 'business-model',
@@ -81,7 +81,7 @@ export const learningPrompts: LearningPrompt[] = [
     supportingText: 'You can describe the model as it exists today, even if it is still evolving.',
     reflection:
       'I have a more useful starting point for how the business could become sustainable.',
-    synthesize: (response) => `The current value model is ${response}.`,
+    synthesize: (response) => response,
   },
   {
     id: 'current-stage',
@@ -89,7 +89,7 @@ export const learningPrompts: LearningPrompt[] = [
     prompt: "What is most true about the company's current stage?",
     supportingText: 'For example: validating demand, building, selling, or finding repeatability.',
     reflection: 'That gives me better context for the decisions that are likely to matter next.',
-    synthesize: (response) => `The company is currently ${response}.`,
+    synthesize: (response) => response,
   },
   {
     id: 'advantage',
@@ -97,6 +97,6 @@ export const learningPrompts: LearningPrompt[] = [
     prompt: 'What could make your company difficult to replace if it works?',
     supportingText: 'It is fine if this is still a hypothesis rather than a proven advantage.',
     reflection: 'I have an initial view of where a defensible advantage may emerge.',
-    synthesize: (response) => `A potential advantage may come from ${response}.`,
+    synthesize: (response) => response,
   },
 ];
