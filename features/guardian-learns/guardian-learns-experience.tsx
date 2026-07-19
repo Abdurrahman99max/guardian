@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { learningPrompts, understandingAreas, type UnderstandingCard } from './model';
 
 type View = 'introduction' | 'learning' | 'reflection' | 'summary' | 'transition';
+type ResumeDestination = { type: 'prompt'; index: number } | { type: 'summary' } | null;
 
 function GuardianLearnsExperience() {
   const [view, setView] = useState<View>('introduction');
@@ -38,6 +39,8 @@ function GuardianLearnsExperience() {
   const [contextCardId, setContextCardId] = useState<string | null>(null);
   const [context, setContext] = useState('');
   const [mobileUnderstandingOpen, setMobileUnderstandingOpen] = useState(false);
+  const [resumeDestination, setResumeDestination] = useState<ResumeDestination>(null);
+  const [summaryReviewMode, setSummaryReviewMode] = useState(false);
 
   const activePrompt = learningPrompts[promptIndex];
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
@@ -77,6 +80,19 @@ function GuardianLearnsExperience() {
   }
 
   function continueLearning() {
+    if (resumeDestination?.type === 'prompt') {
+      setPromptIndex(resumeDestination.index);
+      setResumeDestination(null);
+      setView('learning');
+      return;
+    }
+
+    if (resumeDestination?.type === 'summary') {
+      setResumeDestination(null);
+      setView('summary');
+      return;
+    }
+
     if (promptIndex === learningPrompts.length - 1) {
       setView('summary');
       return;
@@ -86,12 +102,38 @@ function GuardianLearnsExperience() {
     setView('learning');
   }
 
-  function editCard(card: UnderstandingCard) {
+  function editCard(card: UnderstandingCard, destination: ResumeDestination = null) {
     const index = learningPrompts.findIndex((prompt) => prompt.id === card.id);
     setPromptIndex(index);
     setResponse(card.response);
     setEditingCardId(card.id);
+    setResumeDestination(destination);
     setView('learning');
+  }
+
+  function reviewPreviousThought() {
+    if (promptIndex === 0) return;
+
+    const previousPrompt = learningPrompts[promptIndex - 1];
+    const previousCard = cards.find((card) => card.id === previousPrompt.id);
+    if (!previousCard) return;
+
+    editCard(previousCard, { type: 'prompt', index: promptIndex });
+  }
+
+  function helpGuardianUnderstandBetter() {
+    const latestCard = cards.find((card) => card.id === latestCardId);
+    if (!latestCard) return;
+
+    editCard(latestCard);
+  }
+
+  function revisitArea(areaId: string) {
+    const card = cardsByArea.get(areaId);
+    if (!card) return;
+
+    setSummaryReviewMode(false);
+    editCard(card, { type: 'summary' });
   }
 
   function deleteCard(card: UnderstandingCard) {
@@ -135,8 +177,10 @@ function GuardianLearnsExperience() {
                   areaLabel={activeArea?.label ?? 'Understanding'}
                   response={response}
                   editing={Boolean(editingCardId)}
+                  canReviewPrevious={promptIndex > 0 && resumeDestination === null}
                   onResponseChange={setResponse}
                   onSubmit={submitResponse}
+                  onReviewPrevious={reviewPreviousThought}
                 />
               )}
               {view === 'reflection' && activePrompt && (
@@ -144,6 +188,7 @@ function GuardianLearnsExperience() {
                   key="reflection"
                   message={activePrompt.reflection}
                   onContinue={continueLearning}
+                  onHelpGuardianUnderstandBetter={helpGuardianUnderstandBetter}
                   final={promptIndex === learningPrompts.length - 1}
                 />
               )}
@@ -151,11 +196,10 @@ function GuardianLearnsExperience() {
                 <Summary
                   key="summary"
                   cardsByArea={cardsByArea}
+                  reviewing={summaryReviewMode}
                   onAccurate={() => setView('transition')}
-                  onChange={() => {
-                    setPromptIndex(0);
-                    setView('learning');
-                  }}
+                  onChange={() => setSummaryReviewMode(true)}
+                  onRevisit={revisitArea}
                 />
               )}
               {view === 'transition' && <Transition key="transition" />}
@@ -189,7 +233,7 @@ function GuardianLearnsExperience() {
                 <p className="text-text-primary text-sm font-semibold tracking-[-0.01em]">
                   Understanding
                 </p>
-                <p className="text-text-secondary mt-1 text-[13px] leading-5">
+                <p className="text-text-secondary mt-1 text-sm leading-5">
                   A working model, shaped by what you share.
                 </p>
               </div>
@@ -259,7 +303,7 @@ function Introduction({ onBegin }: { onBegin: () => void }) {
               Before I can help with strategic decisions, I need to understand what you&apos;re
               building.
             </CardTitle>
-            <p className="text-text-secondary max-w-md text-[15px] leading-6">
+            <p className="text-text-secondary max-w-md text-base leading-6">
               I need some context before I can help you decide what deserves attention. You do not
               need to explain everything today.
             </p>
@@ -280,15 +324,19 @@ function PromptCard({
   areaLabel,
   response,
   editing,
+  canReviewPrevious,
   onResponseChange,
   onSubmit,
+  onReviewPrevious,
 }: {
   prompt: (typeof learningPrompts)[number];
   areaLabel: string;
   response: string;
   editing: boolean;
+  canReviewPrevious: boolean;
   onResponseChange: (value: string) => void;
   onSubmit: () => void;
+  onReviewPrevious: () => void;
 }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
@@ -301,7 +349,7 @@ function PromptCard({
             <CardTitle className="max-w-xl text-[1.75rem] leading-[1.15] tracking-[-0.035em] sm:text-[2.1rem]">
               {prompt.prompt}
             </CardTitle>
-            <p className="text-text-secondary max-w-lg text-[15px] leading-6">
+            <p className="text-text-secondary max-w-lg text-base leading-6">
               {prompt.supportingText}
             </p>
           </div>
@@ -316,7 +364,7 @@ function PromptCard({
             </div>
             <div className="rounded-writing bg-surface focus-within:ring-guardian-blue/15 duration-standard ring-border-soft/45 ring-1 transition-[box-shadow] focus-within:ring-4">
               <Textarea
-                className="min-h-28 resize-none border-0 bg-transparent px-4 py-3 shadow-none focus:border-0"
+                className="min-h-28 resize-none border-0 bg-transparent px-4 py-3 text-base shadow-none focus:border-0"
                 aria-label="Your perspective"
                 value={response}
                 onChange={(event) => onResponseChange(event.target.value)}
@@ -325,13 +373,20 @@ function PromptCard({
               />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-text-secondary text-xs leading-5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-text-secondary text-sm leading-5">
               Guardian will reflect this as a current interpretation.
             </p>
-            <Button size="sm" onClick={onSubmit}>
-              {editing ? 'Update understanding' : 'Share with Guardian'}
-            </Button>
+            <div className="flex items-center gap-3">
+              {canReviewPrevious && (
+                <Button size="sm" variant="ghost" className="px-1" onClick={onReviewPrevious}>
+                  Review previous thought
+                </Button>
+              )}
+              <Button size="sm" onClick={onSubmit}>
+                {editing ? 'Update understanding' : 'Share with Guardian'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -342,10 +397,12 @@ function PromptCard({
 function Reflection({
   message,
   onContinue,
+  onHelpGuardianUnderstandBetter,
   final,
 }: {
   message: string;
   onContinue: () => void;
+  onHelpGuardianUnderstandBetter: () => void;
   final: boolean;
 }) {
   return (
@@ -357,14 +414,22 @@ function Reflection({
             <CardTitle className="max-w-xl text-[1.75rem] leading-[1.15] tracking-[-0.035em] sm:text-[2.1rem]">
               {message}
             </CardTitle>
-            <p className="text-text-secondary max-w-md text-[15px] leading-6">
+            <p className="text-text-secondary max-w-md text-base leading-6">
               This is a working interpretation. You can refine it whenever more context matters.
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-1 pt-2 pb-1 sm:px-2">
+        <CardContent className="flex flex-wrap items-center gap-3 px-1 pt-2 pb-1 sm:px-2">
           <Button size="sm" onClick={onContinue}>
             {final ? 'Review my understanding' : 'Continue learning'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="px-1"
+            onClick={onHelpGuardianUnderstandBetter}
+          >
+            Help Guardian understand this better
           </Button>
         </CardContent>
       </Card>
@@ -374,12 +439,16 @@ function Reflection({
 
 function Summary({
   cardsByArea,
+  reviewing,
   onAccurate,
   onChange,
+  onRevisit,
 }: {
   cardsByArea: Map<string, UnderstandingCard>;
+  reviewing: boolean;
   onAccurate: () => void;
   onChange: () => void;
+  onRevisit: (areaId: string) => void;
 }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
@@ -389,7 +458,7 @@ function Summary({
           <CardTitle className="text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
             Here is the working picture I&apos;ve built.
           </CardTitle>
-          <p className="text-text-secondary max-w-xl text-[15px] leading-6">
+          <p className="text-text-secondary max-w-xl text-base leading-6">
             Based on what you&apos;ve shared, this is my initial interpretation. I&apos;m more
             confident in some areas than others.
           </p>
@@ -400,11 +469,23 @@ function Summary({
               key={area.id}
               className="rounded-control border-border-soft/45 bg-foundation/55 border px-3.5 py-3"
             >
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-3">
                 <p className="text-text-primary font-medium">{area.label}</p>
-                <ConfidenceBadge confidence={area.confidence} />
+                <div className="flex items-center gap-2">
+                  <ConfidenceBadge confidence={area.confidence} />
+                  {reviewing && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="px-1"
+                      onClick={() => onRevisit(area.id)}
+                    >
+                      Revisit
+                    </Button>
+                  )}
+                </div>
               </div>
-              <p className="text-text-secondary mt-2 text-sm leading-6">
+              <p className="text-text-secondary mt-2 text-sm leading-6 break-words">
                 {cardsByArea.get(area.id)?.summary ??
                   'I do not have enough context to form a useful view yet.'}
               </p>
@@ -422,6 +503,11 @@ function Summary({
                 I&apos;d like to change something
               </Button>
             </div>
+            {reviewing && (
+              <p className="text-text-secondary mt-3 text-sm">
+                Choose an area above to revisit. Guardian will preserve everything else.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -444,7 +530,7 @@ function Transition() {
             <CardTitle className="max-w-xl text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
               Keep building this understanding together.
             </CardTitle>
-            <p className="text-text-secondary max-w-lg text-[15px] leading-6">
+            <p className="text-text-secondary max-w-lg text-base leading-6">
               Create an account so Guardian can continue learning alongside your company.
             </p>
           </div>
@@ -500,7 +586,7 @@ function UnderstandingCardItem({
               {area.label}
             </p>
             {(focused || card) && (
-              <p className="text-text-secondary mt-1.5 text-[13px] leading-5">
+              <p className="text-text-secondary mt-1.5 text-sm leading-5 break-words">
                 {card ? card.summary : area.description}
               </p>
             )}
