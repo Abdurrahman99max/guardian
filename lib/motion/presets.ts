@@ -6,7 +6,7 @@ const transition: Transition = {
 };
 
 const emphasizedTransition: Transition = {
-  duration: 0.32,
+  duration: 0.28,
   ease: [0.16, 1, 0.3, 1],
 };
 
@@ -17,13 +17,13 @@ export const fadeIn: Variants = {
 };
 
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 8 },
   visible: { opacity: 1, y: 0, transition: emphasizedTransition },
-  exit: { opacity: 0, y: 8, transition },
+  exit: { opacity: 0, y: 6, transition },
 };
 
 export const cardReveal: Variants = {
-  hidden: { opacity: 0, scale: 0.985, y: 12 },
+  hidden: { opacity: 0, scale: 0.995, y: 8 },
   visible: { opacity: 1, scale: 1, y: 0, transition: emphasizedTransition },
 };
 

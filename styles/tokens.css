@@ -1,7 +1,7 @@
 :root {
   --guardian-blue: #0057ff;
-  --foundation: #f8f7f4;
-  --surface: #ffffff;
+  --foundation: #f8f7f3;
+  --surface: #fffefa;
   --text-primary: #111827;
   --text-secondary: #6b7280;
   --border-soft: #e5e7eb;
@@ -29,6 +29,7 @@
   --z-dialog: 60;
   --z-toast: 70;
   --container-content: 72rem;
+  --container-conversation: 68rem;
 }
 
 @theme inline {
@@ -61,4 +62,5 @@
   --z-index-dialog: var(--z-dialog);
   --z-index-toast: var(--z-toast);
   --container-content: var(--container-content);
+  --container-conversation: var(--container-conversation);
 }
