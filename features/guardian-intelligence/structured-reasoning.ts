@@ -211,10 +211,16 @@ function applyDecisionPublicationGate(
   const leadingHypothesis = output.hypotheses.find((hypothesis) => hypothesis.status === 'Leading');
   const alternatives = output.hypotheses.filter((hypothesis) => hypothesis.status !== 'Leading');
   const evidenceAreas = new Set(evidence.map((item) => item.areaId)).size;
+  const evidenceById = new Map(evidence.map((item) => [item.id, item]));
+  const supportingAreas = new Set(
+    leadingHypothesis?.supportingEvidence
+      .map((reference) => evidenceById.get(reference.evidenceId)?.areaId)
+      .filter((areaId): areaId is string => Boolean(areaId)),
+  ).size;
   const evidenceSufficiency: ReadinessLevel =
-    evidence.length >= 5 && evidenceAreas >= 4
+    evidenceAreas >= 4 && supportingAreas >= 2
       ? 'sufficient'
-      : evidence.length >= 2
+      : evidenceAreas >= 2 && supportingAreas >= 1
         ? 'developing'
         : 'limited';
   const evidenceConsistency: ReadinessLevel = hasMaterialTension ? 'limited' : 'sufficient';
@@ -233,7 +239,10 @@ function applyDecisionPublicationGate(
     ? output.tensions
         .filter((tension) => tension.materiality === 'material')
         .map((tension) => tension.clarificationNeeded)
-    : [];
+    : ['clarify', 'challenge'].includes(output.decisionContext.nextAction) &&
+        output.decisionContext.question
+      ? [output.decisionContext.question]
+      : [];
   const decisionStability: ReadinessLevel =
     evidenceSufficiency === 'sufficient' &&
     evidenceConsistency === 'sufficient' &&
@@ -288,11 +297,11 @@ function applyDecisionPublicationGate(
     };
   }
 
-  const focus = hasLinkedFocus
+  const focus = equallyPlausibleAlternative
     ? {
         kind: 'linked_pair' as const,
-        title: `${leadingHypothesis.title} and ${equallyPlausibleAlternative?.title}`,
-        linkedFocuses: [leadingHypothesis.title, equallyPlausibleAlternative?.title ?? ''],
+        title: `${leadingHypothesis.title} and ${equallyPlausibleAlternative.title}`,
+        linkedFocuses: [leadingHypothesis.title, equallyPlausibleAlternative.title],
         whyLinked:
           'The available evidence does not yet separate these two explanations without losing important uncertainty.',
       }

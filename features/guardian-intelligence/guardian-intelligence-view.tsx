@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardReveal } from '@/lib/motion/presets';
 
 import { requestReasoning } from './reasoning-client';
-import { appendDecisionBrief, type DecisionBriefHistory } from './decision-brief-history';
+import { recordDecisionCycle, type DecisionBriefHistory } from './decision-brief-history';
 import type {
   ConfidenceLevel,
   DecisionBrief,
@@ -26,7 +26,7 @@ type GuardianIntelligenceViewProps = {
   evidence: FounderEvidence[];
   onReturnToLearning: () => void;
   decisionBriefHistory: DecisionBriefHistory;
-  onDecisionBriefHistoryChange: (history: DecisionBriefHistory) => void;
+  onDecisionBriefHistoryChange: Dispatch<SetStateAction<DecisionBriefHistory>>;
 };
 
 function GuardianIntelligenceView({
@@ -44,19 +44,21 @@ function GuardianIntelligenceView({
       if (!active) return;
 
       setResult(nextResult);
-      if (nextResult.status === 'ready' && nextResult.output.decisionBrief) {
-        const nextHistory = appendDecisionBrief(
-          decisionBriefHistory,
-          nextResult.output.decisionBrief,
+      if (nextResult.status === 'ready') {
+        onDecisionBriefHistoryChange((history) =>
+          recordDecisionCycle(
+            history,
+            nextResult.output.decisionPublication,
+            nextResult.output.decisionBrief,
+          ),
         );
-        if (nextHistory !== decisionBriefHistory) onDecisionBriefHistoryChange(nextHistory);
       }
     });
 
     return () => {
       active = false;
     };
-  }, [decisionBriefHistory, evidence, onDecisionBriefHistoryChange]);
+  }, [evidence, onDecisionBriefHistoryChange]);
 
   const currentBrief = decisionBriefHistory.briefs.at(-1);
 

@@ -1,8 +1,9 @@
-import type { DecisionBrief, DecisionBriefDraft } from './types';
+import type { DecisionBrief, DecisionBriefDraft, DecisionPublication, GuardianMode } from './types';
 
 export type DecisionBriefHistory = {
   sessionId: string;
   briefs: DecisionBrief[];
+  latestMode: GuardianMode;
 };
 
 /**
@@ -25,6 +26,11 @@ function isMeaningfullyDifferent(previous: DecisionBrief, next: DecisionBriefDra
     previous.strategicFocus.linkedFocuses.map(normalized).join('|') !==
       next.strategicFocus.linkedFocuses.map(normalized).join('|') ||
     previous.decisionReadiness.mode !== next.decisionReadiness.mode ||
+    previous.decisionReadiness.evidenceSufficiency !== next.decisionReadiness.evidenceSufficiency ||
+    previous.decisionReadiness.evidenceConsistency !== next.decisionReadiness.evidenceConsistency ||
+    previous.decisionReadiness.hypothesisSeparation !==
+      next.decisionReadiness.hypothesisSeparation ||
+    previous.decisionReadiness.decisionStability !== next.decisionReadiness.decisionStability ||
     previous.confidence !== next.confidence
   );
 }
@@ -32,10 +38,11 @@ function isMeaningfullyDifferent(previous: DecisionBrief, next: DecisionBriefDra
 export function appendDecisionBrief(
   history: DecisionBriefHistory,
   draft: DecisionBriefDraft,
+  forceNewVersion = false,
 ): DecisionBriefHistory {
   const previous = history.briefs.at(-1);
 
-  if (previous && !isMeaningfullyDifferent(previous, draft)) return history;
+  if (previous && !forceNewVersion && !isMeaningfullyDifferent(previous, draft)) return history;
 
   const brief: DecisionBrief = {
     ...draft,
@@ -44,14 +51,32 @@ export function appendDecisionBrief(
     sessionId: history.sessionId,
   };
 
-  return { ...history, briefs: [...history.briefs, brief] };
+  return { ...history, briefs: [...history.briefs, brief], latestMode: 'decision' };
+}
+
+export function recordDecisionCycle(
+  history: DecisionBriefHistory,
+  publication: DecisionPublication,
+  draft: DecisionBriefDraft | null,
+): DecisionBriefHistory {
+  if (publication.mode === 'learning' || !draft) {
+    return history.latestMode === 'learning' ? history : { ...history, latestMode: 'learning' };
+  }
+
+  return appendDecisionBrief(
+    history,
+    draft,
+    history.latestMode === 'learning' && history.briefs.length > 0,
+  );
 }
 
 export class SessionDecisionBriefHistoryRepository implements DecisionBriefHistoryRepository {
   constructor(private history: DecisionBriefHistory) {}
 
-  read(sessionId: string) {
-    return this.history.sessionId === sessionId ? this.history : { sessionId, briefs: [] };
+  read(sessionId: string): DecisionBriefHistory {
+    return this.history.sessionId === sessionId
+      ? this.history
+      : { sessionId, briefs: [], latestMode: 'learning' };
   }
 
   append(sessionId: string, draft: DecisionBriefDraft) {

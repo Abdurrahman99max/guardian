@@ -49,6 +49,7 @@ function GuardianLearnsExperience() {
   const [decisionBriefHistory, setDecisionBriefHistory] = useState<DecisionBriefHistory>(() => ({
     sessionId: crypto.randomUUID(),
     briefs: [],
+    latestMode: 'learning',
   }));
 
   const activePrompt = learningPrompts[promptIndex];
