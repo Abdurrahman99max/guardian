@@ -1,7 +1,7 @@
 export type ConfidenceLevel = 'Low' | 'Moderate' | 'High';
 export type HypothesisStatus = 'Active' | 'Weakening' | 'Rejected' | 'Leading';
 export type EvidenceKind = 'founder_response' | 'understanding_summary' | 'added_context';
-export type EvidenceCertainty = 'confirmed' | 'inferred' | 'assumption';
+export type EvidenceCertainty = 'confirmed' | 'founder_claim' | 'inferred' | 'assumption';
 export type NextCognitiveAction =
   'ask' | 'clarify' | 'challenge' | 'explain' | 'ready_for_guidance';
 
@@ -16,7 +16,24 @@ export type FounderEvidence = {
 
 export type EvidenceReference = {
   evidenceId: string;
+  supportType: EvidenceCertainty;
   explanation: string;
+};
+
+export type EvidenceReview = {
+  confirmedEvidence: EvidenceReference[];
+  founderClaims: EvidenceReference[];
+  inferences: EvidenceReference[];
+  assumptions: EvidenceReference[];
+  unsupportedLeaps: string[];
+};
+
+export type ReasoningTension = {
+  id: string;
+  statement: string;
+  evidence: EvidenceReference[];
+  materiality: 'material' | 'minor';
+  clarificationNeeded: string;
 };
 
 export type UnderstandingUpdate = {
@@ -59,6 +76,11 @@ export type DecisionContext = {
   nextAction: NextCognitiveAction;
   rationale: string;
   question: string | null;
+  informationGain: {
+    uncertaintiesAddressed: string[];
+    hypothesesDifferentiated: string[];
+    expectedConfidenceEffect: 'increase' | 'decrease' | 'clarify';
+  };
 };
 
 export type StrategicModel = {
@@ -70,6 +92,8 @@ export type StrategicModel = {
 
 export type ReasoningOutput = {
   evidence: FounderEvidence[];
+  evidenceReview: EvidenceReview;
+  tensions: ReasoningTension[];
   model: StrategicModel;
   hypotheses: StrategicHypothesis[];
   currentStrategicView: CurrentStrategicView;

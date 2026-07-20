@@ -15,7 +15,7 @@ export function buildFounderEvidence(
       {
         id: `${card.id}:response`,
         kind: 'founder_response',
-        certainty: 'confirmed',
+        certainty: 'founder_claim',
         areaId: card.areaId,
         areaLabel: area.label,
         content: card.response,
@@ -31,7 +31,7 @@ export function buildFounderEvidence(
       ...card.context.map((content, index) => ({
         id: `${card.id}:context:${index}`,
         kind: 'added_context' as const,
-        certainty: 'confirmed' as const,
+        certainty: 'founder_claim' as const,
         areaId: card.areaId,
         areaLabel: area.label,
         content,

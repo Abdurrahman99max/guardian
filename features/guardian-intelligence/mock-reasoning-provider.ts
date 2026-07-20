@@ -6,11 +6,24 @@ export class MockReasoningProvider implements ReasoningProvider {
   async reason({ evidence }: ReasoningRequest): Promise<ReasoningOutput> {
     const supportingEvidence = evidence.slice(0, 2).map((item) => ({
       evidenceId: item.id,
+      supportType: item.certainty,
       explanation: `This is grounded in what you shared about ${item.areaLabel.toLowerCase()}.`,
     }));
 
     return {
       evidence,
+      evidenceReview: {
+        confirmedEvidence: [],
+        founderClaims: supportingEvidence.filter(
+          (reference) => reference.supportType === 'founder_claim',
+        ),
+        inferences: supportingEvidence.filter((reference) => reference.supportType === 'inferred'),
+        assumptions: supportingEvidence.filter(
+          (reference) => reference.supportType === 'assumption',
+        ),
+        unsupportedLeaps: [],
+      },
+      tensions: [],
       model: {
         understanding: evidence
           .filter((item) => item.kind === 'understanding_summary')
@@ -82,6 +95,11 @@ export class MockReasoningProvider implements ReasoningProvider {
         rationale:
           'A clearer view of customer discovery would distinguish the strongest competing explanations.',
         question: 'How do your most promising customers currently discover your company?',
+        informationGain: {
+          uncertaintiesAddressed: ['How prospective customers discover the company.'],
+          hypothesesDifferentiated: ['distribution', 'positioning'],
+          expectedConfidenceEffect: 'clarify',
+        },
       },
     };
   }

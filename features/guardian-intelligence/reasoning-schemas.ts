@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const founderEvidenceSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(['founder_response', 'understanding_summary', 'added_context']),
-  certainty: z.enum(['confirmed', 'inferred', 'assumption']),
+  certainty: z.enum(['confirmed', 'founder_claim', 'inferred', 'assumption']),
   areaId: z.string().min(1),
   areaLabel: z.string().min(1),
   content: z.string().min(1),
@@ -15,6 +15,7 @@ export const reasoningRequestSchema = z.object({
 
 const evidenceReferenceSchema = z.object({
   evidenceId: z.string().min(1),
+  supportType: z.enum(['confirmed', 'founder_claim', 'inferred', 'assumption']),
   explanation: z.string().min(1),
 });
 
@@ -31,6 +32,22 @@ const hypothesisSchema = z.object({
 });
 
 export const reasoningOutputSchema = z.object({
+  evidenceReview: z.object({
+    confirmedEvidence: z.array(evidenceReferenceSchema),
+    founderClaims: z.array(evidenceReferenceSchema),
+    inferences: z.array(evidenceReferenceSchema),
+    assumptions: z.array(evidenceReferenceSchema),
+    unsupportedLeaps: z.array(z.string().min(1)),
+  }),
+  tensions: z.array(
+    z.object({
+      id: z.string().min(1),
+      statement: z.string().min(1),
+      evidence: z.array(evidenceReferenceSchema).min(1),
+      materiality: z.enum(['material', 'minor']),
+      clarificationNeeded: z.string().min(1),
+    }),
+  ),
   model: z.object({
     understanding: z.array(
       z.object({
@@ -66,5 +83,10 @@ export const reasoningOutputSchema = z.object({
     nextAction: z.enum(['ask', 'clarify', 'challenge', 'explain', 'ready_for_guidance']),
     rationale: z.string().min(1),
     question: z.string().min(1).nullable(),
+    informationGain: z.object({
+      uncertaintiesAddressed: z.array(z.string().min(1)),
+      hypothesesDifferentiated: z.array(z.string().min(1)),
+      expectedConfidenceEffect: z.enum(['increase', 'decrease', 'clarify']),
+    }),
   }),
 });

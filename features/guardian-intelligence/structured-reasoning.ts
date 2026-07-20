@@ -4,29 +4,136 @@ import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 
 import { reasoningOutputSchema } from './reasoning-schemas';
-import type { ReasoningOutput, ReasoningRequest } from './types';
+import type { EvidenceReference, ReasoningOutput, ReasoningRequest } from './types';
 
-const reasoningInstructions = `You are Guardian's reasoning layer for founders. You do not give recommendations.
+const reasoningInstructions = `You are Guardian's reasoning layer for founders. Your purpose is intellectual honesty, not persuasive analysis. You do not give recommendations, action plans, or strategic advice.
 
-Transform founder evidence into a transparent strategic model using this sequence:
-Evidence -> Understanding -> Competing Hypotheses -> Current Strategic View -> Decision Context.
+Transform founder evidence using this sequence:
+Evidence -> Understanding -> Evidence Review -> Contradiction and Ambiguity Review -> Assumption versus Evidence Classification -> Competing Hypotheses -> Confidence Calibration -> Current Strategic View -> Decision Context -> Next Cognitive Action.
 
-Rules:
-- Use only the supplied evidence. Never invent facts, evidence, metrics, customers, or outcomes.
-- Treat founder_response and added_context as confirmed evidence. Treat understanding_summary as an inference, not a confirmed fact.
-- Preserve uncertainty. Confidence means confidence in the current explanation, not certainty about objective truth.
-- Produce exactly three competing hypotheses and exactly one Leading hypothesis. The other hypotheses must remain plausible alternatives when evidence allows.
-- Every evidence reference must use an ID from the supplied evidence. Do not create evidence IDs.
-- Supporting and conflicting evidence must be genuinely relevant. Leave either list empty when the supplied evidence does not support it.
-- Unknowns must stay unknown. Do not fill gaps with assumptions.
-- Current Strategic View is a working interpretation, never a recommendation or definitive conclusion.
-- Perspective Shift is optional. Include it only when the combined evidence genuinely changes which explanation is most plausible. Keep it calm and explain why.
-- Decision Context chooses one next cognitive action: ask, clarify, challenge, explain, or ready_for_guidance. Do not provide strategic guidance or recommendations. If more understanding would materially improve the view, choose ask or clarify and provide one precise question.
-- Use clear, calm, founder-facing language. Do not mention models, prompts, APIs, or implementation details.`;
+Evidence discipline:
+- founder_claim means the founder stated it, not that it is independently confirmed.
+- confirmed is independently established evidence. inferred is Guardian's synthesis. assumption is a possibility that lacks enough support.
+- Every evidence reference must use an ID from the supplied evidence and must set supportType to that evidence item's certainty exactly.
+- Do not turn a founder claim, an inference, or an assumption into a fact.
+- Add unsupported reasoning leaps to evidenceReview.unsupportedLeaps instead of using them as conclusions.
+
+Contradiction and ambiguity review:
+- Search actively for conflicting statements, ambiguous quantities, unclear causal claims, and missing context that would change the leading explanation.
+- Record every material tension with the relevant evidence IDs and the exact clarification needed.
+- If a material tension exists, confidence cannot be High. Prefer clarify or challenge, ask a precise question, and explain which hypotheses the answer would differentiate.
+- Do not treat words such as may, might, could, hope, expected, or planned as proof of a current capability or outcome.
+
+Hypotheses and confidence:
+- Produce exactly three genuinely competing explanations and exactly one Leading hypothesis. Do not reuse generic adoption, pricing, or execution templates unless the supplied evidence makes them relevant.
+- High confidence requires multiple mutually consistent confirmed observations, no material unresolved tension, and no important unknown that could plausibly change the view. Moderate is the normal early-stage state.
+- Confidence must be earned by resolving uncertainty. State why it is not higher.
+- Every hypothesis and the current strategic view must use supporting and conflicting evidence honestly. Empty lists are preferable to invented support.
+
+Decision context:
+- Choose the next cognitive action that maximizes information gain: it must reduce uncertainty between named competing hypotheses or resolve a named tension.
+- When asking, clarifying, or challenging, provide one question and identify the uncertainties and hypotheses it can differentiate.
+- Stop at Decision Context. Do not recommend, advise, prescribe, prioritize, propose a pivot, or present an action plan.
+- Perspective shifts require longitudinal comparison and are unavailable in this single-pass reasoning request. Always return perspectiveShift as null.
+
+Use calm, clear founder-facing language. Do not mention models, prompts, APIs, or implementation details.`;
+
+const unsupportedConclusionPatterns = [
+  /product[ -]market fit/i,
+  /network effects?/i,
+  /predictable recurring revenue/i,
+  /organic growth engine/i,
+];
+
+const recommendationPatterns = [
+  /\brecommend(?:ation|ed|s)?\b/i,
+  /\baction plan\b/i,
+  /\bshould (?:pivot|prioritize|launch|hire|invest|change)\b/i,
+  /\bpivot(?:ing)?\b/i,
+];
 
 export class ReasoningOutputValidationError extends Error {
   constructor() {
     super('Guardian received reasoning that did not satisfy its output contract.');
+  }
+}
+
+function collectReferences(output: Omit<ReasoningOutput, 'evidence'>): EvidenceReference[] {
+  return [
+    ...output.evidenceReview.confirmedEvidence,
+    ...output.evidenceReview.founderClaims,
+    ...output.evidenceReview.inferences,
+    ...output.evidenceReview.assumptions,
+    ...output.tensions.flatMap((tension) => tension.evidence),
+    ...output.hypotheses.flatMap((hypothesis) => [
+      ...hypothesis.supportingEvidence,
+      ...hypothesis.conflictingEvidence,
+    ]),
+    ...output.currentStrategicView.supportingEvidence,
+    ...output.currentStrategicView.conflictingEvidence,
+  ];
+}
+
+function collectConclusionText(output: Omit<ReasoningOutput, 'evidence'>) {
+  return [
+    ...output.model.strategicStrengths,
+    ...output.model.strategicRisks,
+    ...output.hypotheses.flatMap((hypothesis) => [hypothesis.title, hypothesis.explanation]),
+    output.currentStrategicView.title,
+    output.currentStrategicView.explanation,
+    output.decisionContext.summary,
+    output.decisionContext.rationale,
+  ].join(' ');
+}
+
+function validateReasoningOutput(
+  output: Omit<ReasoningOutput, 'evidence'>,
+  evidence: ReasoningRequest['evidence'],
+) {
+  const evidenceById = new Map(evidence.map((item) => [item.id, item]));
+  const references = collectReferences(output);
+  const hasInvalidReference = references.some((reference) => {
+    const source = evidenceById.get(reference.evidenceId);
+    return !source || source.certainty !== reference.supportType;
+  });
+  const hasOneLeadingHypothesis =
+    output.hypotheses.filter((hypothesis) => hypothesis.status === 'Leading').length === 1;
+  const materialTensions = output.tensions.filter((tension) => tension.materiality === 'material');
+  const highConfidenceExists = [
+    output.currentStrategicView.confidence,
+    ...output.hypotheses.map((hypothesis) => hypothesis.confidence),
+  ].includes('High');
+  const hasConfirmedEvidence = evidence.some((item) => item.certainty === 'confirmed');
+  const needsClarification = materialTensions.length > 0;
+  const actionRequiresQuestion = ['ask', 'clarify', 'challenge'].includes(
+    output.decisionContext.nextAction,
+  );
+  const hasInformationGain =
+    output.decisionContext.informationGain.uncertaintiesAddressed.length > 0 &&
+    output.decisionContext.informationGain.hypothesesDifferentiated.length > 0;
+  const conclusionText = collectConclusionText(output);
+  const evidenceText = evidence.map((item) => item.content).join(' ');
+  const hasUnsupportedConclusion = unsupportedConclusionPatterns.some(
+    (pattern) => pattern.test(conclusionText) && !pattern.test(evidenceText),
+  );
+  const crossesRecommendationBoundary = recommendationPatterns.some((pattern) =>
+    pattern.test(conclusionText),
+  );
+
+  if (
+    hasInvalidReference ||
+    !hasOneLeadingHypothesis ||
+    (highConfidenceExists && (!hasConfirmedEvidence || needsClarification)) ||
+    (needsClarification &&
+      (!['clarify', 'challenge'].includes(output.decisionContext.nextAction) ||
+        !output.decisionContext.question ||
+        !hasInformationGain ||
+        output.decisionContext.informationGain.expectedConfidenceEffect !== 'clarify')) ||
+    (actionRequiresQuestion && (!output.decisionContext.question || !hasInformationGain)) ||
+    hasUnsupportedConclusion ||
+    crossesRecommendationBoundary
+  ) {
+    throw new ReasoningOutputValidationError();
   }
 }
 
@@ -51,27 +158,9 @@ export async function createStructuredReasoning(
 
   const output = response.output_parsed;
 
-  if (!output) {
-    throw new ReasoningOutputValidationError();
-  }
+  if (!output) throw new ReasoningOutputValidationError();
 
-  const evidenceIds = new Set(evidence.map((item) => item.id));
-  const references = [
-    ...output.hypotheses.flatMap((hypothesis) => [
-      ...hypothesis.supportingEvidence,
-      ...hypothesis.conflictingEvidence,
-    ]),
-    ...output.currentStrategicView.supportingEvidence,
-    ...output.currentStrategicView.conflictingEvidence,
-    ...(output.perspectiveShift?.evidence ?? []),
-  ];
-
-  if (
-    output.hypotheses.filter((hypothesis) => hypothesis.status === 'Leading').length !== 1 ||
-    references.some((reference) => !evidenceIds.has(reference.evidenceId))
-  ) {
-    throw new ReasoningOutputValidationError();
-  }
+  validateReasoningOutput(output, evidence);
 
   return { ...output, evidence };
 }
