@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import { Check, ChevronDown, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import {
   GuardianIntelligenceView,
-  type DecisionBriefHistory,
+  SessionStrategicJournalRepository,
+  createStrategicJournal,
+  type StrategicJournal,
+  type StrategicJournalRepository,
+  type StrategicJournalQuery,
 } from '@/features/guardian-intelligence';
 import { cardReveal } from '@/lib/motion/presets';
 import { cn } from '@/lib/utils';
@@ -46,11 +50,27 @@ function GuardianLearnsExperience() {
   const [mobileUnderstandingOpen, setMobileUnderstandingOpen] = useState(false);
   const [resumeDestination, setResumeDestination] = useState<ResumeDestination>(null);
   const [summaryReviewMode, setSummaryReviewMode] = useState(false);
-  const [decisionBriefHistory, setDecisionBriefHistory] = useState<DecisionBriefHistory>(() => ({
-    sessionId: crypto.randomUUID(),
-    briefs: [],
-    latestMode: 'learning',
-  }));
+  const [strategicJournal, setStrategicJournal] = useState<StrategicJournal>(() =>
+    createStrategicJournal(crypto.randomUUID()),
+  );
+
+  const transactJournal = useCallback(
+    (operation: (repository: StrategicJournalRepository) => StrategicJournal) => {
+      setStrategicJournal((currentJournal) =>
+        operation(new SessionStrategicJournalRepository(currentJournal)),
+      );
+    },
+    [],
+  );
+
+  const queryJournal = useCallback(
+    (query: StrategicJournalQuery) =>
+      new SessionStrategicJournalRepository(strategicJournal).answer(
+        strategicJournal.sessionId,
+        query,
+      ),
+    [strategicJournal],
+  );
 
   const activePrompt = learningPrompts[promptIndex];
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
@@ -168,8 +188,10 @@ function GuardianLearnsExperience() {
       <GuardianIntelligenceView
         evidence={founderEvidence}
         onReturnToLearning={() => setView('summary')}
-        decisionBriefHistory={decisionBriefHistory}
-        onDecisionBriefHistoryChange={setDecisionBriefHistory}
+        journal={strategicJournal}
+        sessionId={strategicJournal.sessionId}
+        transactJournal={transactJournal}
+        queryJournal={queryJournal}
       />
     );
   }

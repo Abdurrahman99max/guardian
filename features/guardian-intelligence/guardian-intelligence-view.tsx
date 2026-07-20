@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
-import { type Dispatch, type ReactNode, type SetStateAction, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardReveal } from '@/lib/motion/presets';
 
 import { requestReasoning } from './reasoning-client';
-import { recordDecisionCycle, type DecisionBriefHistory } from './decision-brief-history';
+import type { StrategicJournal, StrategicJournalRepository } from './strategic-journal';
 import type {
   ConfidenceLevel,
   DecisionBrief,
@@ -19,21 +19,29 @@ import type {
   NextCognitiveAction,
   ReasoningOutput,
   ReasoningResult,
+  StrategicJournalAnswer,
+  StrategicJournalQuery,
   StrategicHypothesis,
 } from './types';
 
 type GuardianIntelligenceViewProps = {
   evidence: FounderEvidence[];
   onReturnToLearning: () => void;
-  decisionBriefHistory: DecisionBriefHistory;
-  onDecisionBriefHistoryChange: Dispatch<SetStateAction<DecisionBriefHistory>>;
+  journal: StrategicJournal;
+  sessionId: string;
+  transactJournal: (
+    operation: (repository: StrategicJournalRepository) => StrategicJournal,
+  ) => void;
+  queryJournal: (query: StrategicJournalQuery) => StrategicJournalAnswer;
 };
 
 function GuardianIntelligenceView({
   evidence,
   onReturnToLearning,
-  decisionBriefHistory,
-  onDecisionBriefHistoryChange,
+  journal,
+  sessionId,
+  transactJournal,
+  queryJournal,
 }: GuardianIntelligenceViewProps) {
   const [result, setResult] = useState<ReasoningResult | null>(null);
 
@@ -45,9 +53,9 @@ function GuardianIntelligenceView({
 
       setResult(nextResult);
       if (nextResult.status === 'ready') {
-        onDecisionBriefHistoryChange((history) =>
-          recordDecisionCycle(
-            history,
+        transactJournal((repository) =>
+          repository.recordDecisionCycle(
+            sessionId,
             nextResult.output.decisionPublication,
             nextResult.output.decisionBrief,
           ),
@@ -58,9 +66,9 @@ function GuardianIntelligenceView({
     return () => {
       active = false;
     };
-  }, [evidence, onDecisionBriefHistoryChange]);
+  }, [evidence, sessionId, transactJournal]);
 
-  const currentBrief = decisionBriefHistory.briefs.at(-1);
+  const currentBrief = journal.briefs.find((brief) => brief.status === 'current');
 
   return (
     <main className="bg-foundation min-h-screen px-4 py-5 sm:px-6 sm:py-8">
@@ -78,7 +86,14 @@ function GuardianIntelligenceView({
         </header>
 
         {result?.status === 'ready' ? (
-          <ReasoningExperience reasoning={result.output} decisionBrief={currentBrief} />
+          <ReasoningExperience
+            reasoning={result.output}
+            decisionBrief={currentBrief}
+            journal={journal}
+            sessionId={sessionId}
+            transactJournal={transactJournal}
+            queryJournal={queryJournal}
+          />
         ) : (
           <ReasoningStatus result={result} />
         )}
@@ -118,9 +133,19 @@ function ReasoningStatus({ result }: { result: ReasoningResult | null }) {
 function ReasoningExperience({
   reasoning,
   decisionBrief,
+  journal,
+  sessionId,
+  transactJournal,
+  queryJournal,
 }: {
   reasoning: ReasoningOutput;
   decisionBrief?: DecisionBrief;
+  journal: StrategicJournal;
+  sessionId: string;
+  transactJournal: (
+    operation: (repository: StrategicJournalRepository) => StrategicJournal,
+  ) => void;
+  queryJournal: (query: StrategicJournalQuery) => StrategicJournalAnswer;
 }) {
   const leadingHypothesis = reasoning.hypotheses.find(
     (hypothesis) => hypothesis.status === 'Leading',
@@ -151,6 +176,12 @@ function ReasoningExperience({
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
         <section className="space-y-6">
           <DecisionPublicationCard reasoning={reasoning} brief={decisionBrief} />
+          <StrategicContinuity
+            journal={journal}
+            sessionId={sessionId}
+            transactJournal={transactJournal}
+            queryJournal={queryJournal}
+          />
           {leadingHypothesis && (
             <ReasoningSection label="Current direction">
               <CurrentViewCard view={reasoning.currentStrategicView} />
@@ -317,6 +348,211 @@ function DecisionPublicationCard({
           <p className="text-text-secondary text-sm leading-5">{brief.nextLearningObjective}</p>
         </CardContent>
       </Card>
+    </ReasoningSection>
+  );
+}
+
+function StrategicContinuity({
+  journal,
+  sessionId,
+  transactJournal,
+  queryJournal,
+}: {
+  journal: StrategicJournal;
+  sessionId: string;
+  transactJournal: (
+    operation: (repository: StrategicJournalRepository) => StrategicJournal,
+  ) => void;
+  queryJournal: (query: StrategicJournalQuery) => StrategicJournalAnswer;
+}) {
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [answer, setAnswer] = useState<StrategicJournalAnswer | null>(null);
+  const proposal = journal.proposals.find((item) => item.status === 'proposed');
+  const recentTransitions = journal.transitions.slice(-2).reverse();
+  const currentBrief = journal.briefs.find((brief) => brief.status === 'current');
+  const currentIsPinned = currentBrief
+    ? journal.milestones.some(
+        (milestone) => milestone.briefId === currentBrief.id && milestone.kind === 'founder_pinned',
+      )
+    : false;
+
+  return (
+    <ReasoningSection label="Strategic continuity">
+      <div className="space-y-3">
+        {proposal && (
+          <Card className="bg-surface/70 shadow-none">
+            <CardContent className="space-y-3 px-4 py-4 sm:px-5">
+              <p className="text-guardian-blue text-sm font-medium">Strategic change observed</p>
+              <p className="text-text-primary text-base leading-6 font-medium">
+                {proposal.observation}
+              </p>
+              <p className="text-text-secondary text-sm leading-5">{proposal.rationale}</p>
+              <EvidenceList
+                label="Evidence affecting the current brief"
+                items={proposal.supportingEvidence}
+              />
+              <p className="text-text-secondary text-sm leading-5">{proposal.proposedNextStep}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    transactJournal((repository) =>
+                      repository.acceptProposal(sessionId, proposal.id),
+                    )
+                  }
+                >
+                  Accept this evolution
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="px-1"
+                  onClick={() =>
+                    transactJournal((repository) =>
+                      repository.deferProposal(sessionId, proposal.id),
+                    )
+                  }
+                >
+                  Keep current view
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="bg-surface/70 shadow-none">
+          <CardContent className="space-y-3 px-4 py-4 sm:px-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-text-primary text-sm font-medium">Recent evolution</p>
+                <p className="text-text-secondary mt-1 text-sm leading-5">
+                  {recentTransitions.length === 0
+                    ? 'Guardian has not yet recorded a completed strategic evolution in this session.'
+                    : 'The latest evidence-driven changes to Guardian’s strategic view.'}
+                </p>
+              </div>
+              {currentBrief && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 px-1"
+                  disabled={currentIsPinned}
+                  onClick={() =>
+                    transactJournal((repository) =>
+                      repository.pinMilestone(sessionId, currentBrief.id),
+                    )
+                  }
+                >
+                  <Bookmark size={15} /> {currentIsPinned ? 'Pinned' : 'Pin moment'}
+                </Button>
+              )}
+            </div>
+            {recentTransitions.map((transition) => (
+              <div key={transition.id} className="border-border-soft/60 border-t pt-3">
+                <p className="text-text-primary text-sm leading-5 font-medium">
+                  {transition.observation}
+                </p>
+                <p className="text-text-secondary mt-1 text-sm leading-5">
+                  {transition.confidenceChange}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="px-1"
+            onClick={() => setJournalOpen((open) => !open)}
+          >
+            Strategic Journal <ChevronDown className={journalOpen ? 'rotate-180' : ''} size={15} />
+          </Button>
+          {(
+            [
+              ['why_did_this_change', 'Why did this change?'],
+              ['what_evidence_changed', 'What evidence changed?'],
+              ['what_did_this_replace', 'What did this replace?'],
+              ['how_confidence_evolved', 'How did confidence evolve?'],
+            ] as const
+          ).map(([query, label]) => (
+            <Button
+              key={query}
+              size="sm"
+              variant="ghost"
+              className="px-1"
+              onClick={() => setAnswer(queryJournal(query))}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {answer && (
+          <Card className="bg-foundation/55 shadow-none">
+            <CardContent className="space-y-2 px-4 py-4 sm:px-5">
+              <p className="text-text-primary text-sm leading-5">{answer.answer}</p>
+              <EvidenceList label="Connected evidence" items={answer.evidence} />
+            </CardContent>
+          </Card>
+        )}
+
+        {journalOpen && (
+          <div className="space-y-2.5">
+            {journal.briefs
+              .slice()
+              .reverse()
+              .map((brief) => (
+                <Card key={brief.id} className="bg-surface/70 shadow-none">
+                  <CardContent className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5">
+                    <div>
+                      <p className="text-text-primary text-sm font-medium">
+                        Version {brief.version} · {brief.status}
+                      </p>
+                      <p className="text-text-secondary mt-1 text-sm leading-5">
+                        {brief.strategicFocus.title}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {!journal.milestones.some(
+                        (milestone) =>
+                          milestone.briefId === brief.id && milestone.kind === 'founder_pinned',
+                      ) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-1"
+                          onClick={() =>
+                            transactJournal((repository) =>
+                              repository.pinMilestone(sessionId, brief.id),
+                            )
+                          }
+                        >
+                          Pin
+                        </Button>
+                      )}
+                      {brief.status !== 'current' && brief.status !== 'archived' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-1"
+                          onClick={() =>
+                            transactJournal((repository) =>
+                              repository.archiveBrief(sessionId, brief.id),
+                            )
+                          }
+                        >
+                          Archive
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        )}
+      </div>
     </ReasoningSection>
   );
 }

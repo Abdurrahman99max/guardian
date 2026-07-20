@@ -1,7 +1,7 @@
 export { GuardianIntelligenceView } from './guardian-intelligence-view';
 export { MockReasoningProvider } from './mock-reasoning-provider';
-export { recordDecisionCycle } from './decision-brief-history';
-export type { DecisionBriefHistory } from './decision-brief-history';
+export { SessionStrategicJournalRepository, createStrategicJournal } from './strategic-journal';
+export type { StrategicJournal, StrategicJournalRepository } from './strategic-journal';
 export type { ReasoningProvider } from './reasoning-provider';
 export type {
   ConfidenceLevel,
@@ -9,4 +9,5 @@ export type {
   FounderEvidence,
   ReasoningOutput,
   ReasoningResult,
+  StrategicJournalQuery,
 } from './types';

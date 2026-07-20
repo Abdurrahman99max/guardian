@@ -7,6 +7,14 @@ export type NextCognitiveAction =
 export type GuardianMode = 'learning' | 'decision';
 export type ReadinessLevel = 'limited' | 'developing' | 'sufficient';
 export type StrategicFocusKind = 'single' | 'linked_pair';
+export type DecisionBriefStatus = 'current' | 'superseded' | 'archived';
+export type StrategicChangeStatus = 'proposed' | 'deferred' | 'accepted';
+export type StrategicMilestoneKind = 'automatic' | 'founder_pinned';
+export type StrategicJournalQuery =
+  | 'why_did_this_change'
+  | 'what_evidence_changed'
+  | 'what_did_this_replace'
+  | 'how_confidence_evolved';
 
 export type FounderEvidence = {
   id: string;
@@ -124,6 +132,48 @@ export type DecisionBrief = DecisionBriefDraft & {
   id: string;
   version: number;
   sessionId: string;
+};
+
+export type JournalDecisionBrief = DecisionBrief & {
+  status: DecisionBriefStatus;
+  predecessorId: string | null;
+  supersededById: string | null;
+};
+
+export type StrategicTransition = {
+  id: string;
+  fromBriefId: string;
+  toBriefId: string;
+  observation: string;
+  supportingEvidence: EvidenceReference[];
+  confidenceChange: string;
+  rationale: string;
+};
+
+export type StrategicChangeProposal = {
+  id: string;
+  status: StrategicChangeStatus;
+  currentBriefId: string;
+  candidate: DecisionBrief;
+  observation: string;
+  supportingEvidence: EvidenceReference[];
+  rationale: string;
+  proposedNextStep: string;
+};
+
+export type StrategicMilestone = {
+  id: string;
+  briefId: string;
+  kind: StrategicMilestoneKind;
+  title: string;
+  description: string;
+};
+
+export type StrategicJournalAnswer = {
+  query: StrategicJournalQuery;
+  answer: string;
+  evidence: EvidenceReference[];
+  relatedBriefId: string | null;
 };
 
 export type StrategicModel = {
