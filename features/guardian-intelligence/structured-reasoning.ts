@@ -179,6 +179,7 @@ export async function createStructuredReasoning(
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const response = await client.responses.parse({
       model,
+      max_output_tokens: 6000,
       input: [
         {
           role: 'system',
