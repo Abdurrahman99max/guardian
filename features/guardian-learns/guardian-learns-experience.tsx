@@ -21,13 +21,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  GuardianIntelligenceView,
-  type UnderstandingSnapshot,
-} from '@/features/guardian-intelligence';
+import { GuardianIntelligenceView } from '@/features/guardian-intelligence';
 import { cardReveal } from '@/lib/motion/presets';
 import { cn } from '@/lib/utils';
 
+import { buildFounderEvidence } from './build-founder-evidence';
 import { learningPrompts, understandingAreas, type UnderstandingCard } from './model';
 
 type View = 'introduction' | 'learning' | 'reflection' | 'summary' | 'transition' | 'intelligence';
@@ -50,10 +48,7 @@ function GuardianLearnsExperience() {
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
   const contextCard = cards.find((card) => card.id === contextCardId);
   const cardsByArea = useMemo(() => new Map(cards.map((card) => [card.areaId, card])), [cards]);
-  const understandingSnapshot: UnderstandingSnapshot[] = cards.map(({ areaId, summary }) => ({
-    areaId,
-    summary,
-  }));
+  const founderEvidence = useMemo(() => buildFounderEvidence(cards, understandingAreas), [cards]);
   const focusAreaId =
     view === 'learning'
       ? activePrompt?.areaId
@@ -163,7 +158,7 @@ function GuardianLearnsExperience() {
   if (view === 'intelligence') {
     return (
       <GuardianIntelligenceView
-        understanding={understandingSnapshot}
+        evidence={founderEvidence}
         onReturnToLearning={() => setView('summary')}
       />
     );

@@ -1,12 +1,4 @@
 export { GuardianIntelligenceView } from './guardian-intelligence-view';
-export { createMockReasoning } from './reasoning';
-export type {
-  HypothesisStatus,
-  MissingUnderstanding,
-  ReasoningConfidence,
-  ReasoningOutput,
-  RecommendationReadiness,
-  StrategicHypothesis,
-  StrategicModel,
-  UnderstandingSnapshot,
-} from './types';
+export { MockReasoningProvider } from './mock-reasoning-provider';
+export type { ReasoningProvider } from './reasoning-provider';
+export type { ConfidenceLevel, FounderEvidence, ReasoningOutput, ReasoningResult } from './types';

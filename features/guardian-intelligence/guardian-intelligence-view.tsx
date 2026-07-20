@@ -2,30 +2,43 @@
 
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardReveal } from '@/lib/motion/presets';
 
-import { createMockReasoning } from './reasoning';
-import type { HypothesisStatus, ReasoningConfidence, UnderstandingSnapshot } from './types';
+import { requestReasoning } from './reasoning-client';
+import type {
+  ConfidenceLevel,
+  FounderEvidence,
+  HypothesisStatus,
+  NextCognitiveAction,
+  ReasoningOutput,
+  ReasoningResult,
+  StrategicHypothesis,
+} from './types';
 
 type GuardianIntelligenceViewProps = {
-  understanding: UnderstandingSnapshot[];
+  evidence: FounderEvidence[];
   onReturnToLearning: () => void;
 };
 
-function GuardianIntelligenceView({
-  understanding,
-  onReturnToLearning,
-}: GuardianIntelligenceViewProps) {
-  const reasoning = useMemo(() => createMockReasoning(understanding), [understanding]);
-  const leadingHypothesis = reasoning.hypotheses.find(
-    (hypothesis) => hypothesis.status === 'Leading',
-  );
-  const alternatives = reasoning.hypotheses.filter((hypothesis) => hypothesis.status !== 'Leading');
+function GuardianIntelligenceView({ evidence, onReturnToLearning }: GuardianIntelligenceViewProps) {
+  const [result, setResult] = useState<ReasoningResult | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    void requestReasoning({ evidence }).then((nextResult) => {
+      if (active) setResult(nextResult);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [evidence]);
 
   return (
     <main className="bg-foundation min-h-screen px-4 py-5 sm:px-6 sm:py-8">
@@ -42,37 +55,83 @@ function GuardianIntelligenceView({
           </Button>
         </header>
 
-        <motion.div initial="hidden" animate="visible" variants={cardReveal}>
-          <div className="max-w-2xl space-y-3 px-1 sm:px-2">
-            <p className="text-guardian-blue text-sm font-medium">
-              Guardian is beginning to reason.
-            </p>
-            <h1 className="text-text-primary text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
-              Here is how I&apos;m currently seeing the company.
-            </h1>
-            <p className="text-text-secondary max-w-xl text-base leading-6">
-              This is not a conclusion. It is a working view that will change as Guardian learns
-              more about the company and its environment.
-            </p>
-          </div>
-        </motion.div>
+        {result?.status === 'ready' ? (
+          <ReasoningExperience reasoning={result.output} />
+        ) : (
+          <ReasoningStatus result={result} />
+        )}
+      </div>
+    </main>
+  );
+}
 
-        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
-          <section className="space-y-6">
-            {leadingHypothesis && (
-              <ReasoningSection label="Current direction">
-                <HypothesisCard hypothesis={leadingHypothesis} featured />
-              </ReasoningSection>
-            )}
+function ReasoningStatus({ result }: { result: ReasoningResult | null }) {
+  const loading = result === null;
+  const unavailableMessage = result?.status === 'unavailable' ? result.message : null;
 
-            <ReasoningSection label="Other possibilities I'm still holding">
-              <div className="space-y-2.5">
-                {alternatives.map((hypothesis) => (
-                  <HypothesisCard key={hypothesis.id} hypothesis={hypothesis} />
-                ))}
-              </div>
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={cardReveal}
+      className="max-w-2xl px-1 sm:px-2"
+    >
+      <p className="text-guardian-blue text-sm font-medium">
+        {loading ? 'Guardian is reviewing what it has learned.' : 'Reasoning needs more clarity.'}
+      </p>
+      <h1 className="text-text-primary mt-3 text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
+        {loading
+          ? 'I’m turning your perspective into a working strategic view.'
+          : 'I’m not ready to present a reliable strategic view yet.'}
+      </h1>
+      <p className="text-text-secondary mt-4 max-w-xl text-base leading-6">
+        {loading
+          ? 'I’ll keep the evidence, alternatives, and uncertainty connected so you can see why my view is taking shape.'
+          : unavailableMessage}
+      </p>
+    </motion.div>
+  );
+}
+
+function ReasoningExperience({ reasoning }: { reasoning: ReasoningOutput }) {
+  const leadingHypothesis = reasoning.hypotheses.find(
+    (hypothesis) => hypothesis.status === 'Leading',
+  );
+  const alternatives = reasoning.hypotheses.filter((hypothesis) => hypothesis.status !== 'Leading');
+
+  return (
+    <>
+      <motion.div initial="hidden" animate="visible" variants={cardReveal}>
+        <div className="max-w-2xl space-y-3 px-1 sm:px-2">
+          <p className="text-guardian-blue text-sm font-medium">Guardian is beginning to reason.</p>
+          <h1 className="text-text-primary text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
+            Here is how I&apos;m currently seeing the company.
+          </h1>
+          <p className="text-text-secondary max-w-xl text-base leading-6">
+            This is a working view, not a conclusion. It will change as Guardian learns more about
+            the company and its environment.
+          </p>
+        </div>
+      </motion.div>
+
+      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
+        <section className="space-y-6">
+          {leadingHypothesis && (
+            <ReasoningSection label="Current direction">
+              <CurrentViewCard view={reasoning.currentStrategicView} />
+              <HypothesisCard hypothesis={leadingHypothesis} featured />
             </ReasoningSection>
+          )}
 
+          <ReasoningSection label="Other possibilities I'm still holding">
+            <div className="space-y-2.5">
+              {alternatives.map((hypothesis) => (
+                <HypothesisCard key={hypothesis.id} hypothesis={hypothesis} />
+              ))}
+            </div>
+          </ReasoningSection>
+
+          {reasoning.perspectiveShift && (
             <ReasoningSection label="Perspective shift">
               <Card className="border-0 bg-transparent shadow-none">
                 <CardHeader className="gap-2 p-1 sm:p-2">
@@ -82,53 +141,55 @@ function GuardianIntelligenceView({
                   <p className="text-text-secondary max-w-xl text-base leading-6">
                     {reasoning.perspectiveShift.explanation}
                   </p>
-                  <p className="text-guardian-blue text-sm font-medium">
-                    {reasoning.perspectiveShift.confidenceChange}
-                  </p>
                 </CardHeader>
               </Card>
             </ReasoningSection>
-          </section>
+          )}
+        </section>
 
-          <aside className="space-y-6 lg:sticky lg:top-8">
-            <ReasoningSection label="Still learning">
-              <div className="space-y-4">
-                {reasoning.missingUnderstanding.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border-border-soft/60 border-t pt-3 first:border-t-0 first:pt-0"
-                  >
-                    <p className="text-text-primary text-sm font-semibold">{item.statement}</p>
-                    <p className="text-text-secondary mt-1 text-sm leading-5">
-                      {item.whyItMatters}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </ReasoningSection>
+        <aside className="space-y-6 lg:sticky lg:top-8">
+          <ReasoningSection label="Still learning">
+            <div className="space-y-4">
+              {reasoning.model.unknownAreas.map((unknown) => (
+                <div
+                  key={unknown}
+                  className="border-border-soft/60 border-t pt-3 first:border-t-0 first:pt-0"
+                >
+                  <p className="text-text-secondary text-sm leading-5">{unknown}</p>
+                </div>
+              ))}
+            </div>
+          </ReasoningSection>
 
-            <ReasoningSection label="Recommendation readiness">
-              <Card className="bg-surface/70 shadow-none">
-                <CardContent className="space-y-2 px-4 py-4">
-                  <ReadinessBadge status={reasoning.recommendationReadiness.status} />
+          <ReasoningSection label="Decision context">
+            <Card className="bg-surface/70 shadow-none">
+              <CardContent className="space-y-2 px-4 py-4">
+                <ActionBadge action={reasoning.decisionContext.nextAction} />
+                <p className="text-text-secondary text-sm leading-5">
+                  {reasoning.decisionContext.summary}
+                </p>
+                <p className="text-text-primary text-sm leading-5 font-medium">
+                  {reasoning.decisionContext.rationale}
+                </p>
+                {reasoning.decisionContext.question && (
                   <p className="text-text-secondary text-sm leading-5">
-                    {reasoning.recommendationReadiness.explanation}
+                    {reasoning.decisionContext.question}
                   </p>
-                </CardContent>
-              </Card>
-            </ReasoningSection>
-          </aside>
-        </div>
-
-        <ReasoningSection label="Strategic model">
-          <div className="grid gap-2.5 md:grid-cols-3">
-            <ModelFacet title="Strengths" items={reasoning.model.strategicStrengths} />
-            <ModelFacet title="Risks" items={reasoning.model.strategicRisks} />
-            <ModelFacet title="Unknown areas" items={reasoning.model.unknownAreas} />
-          </div>
-        </ReasoningSection>
+                )}
+              </CardContent>
+            </Card>
+          </ReasoningSection>
+        </aside>
       </div>
-    </main>
+
+      <ReasoningSection label="Strategic model">
+        <div className="grid gap-2.5 md:grid-cols-3">
+          <ModelFacet title="Strengths" items={reasoning.model.strategicStrengths} />
+          <ModelFacet title="Risks" items={reasoning.model.strategicRisks} />
+          <ModelFacet title="Unknown areas" items={reasoning.model.unknownAreas} />
+        </div>
+      </ReasoningSection>
+    </>
   );
 }
 
@@ -141,11 +202,28 @@ function ReasoningSection({ label, children }: { label: string; children: ReactN
   );
 }
 
+function CurrentViewCard({ view }: { view: ReasoningOutput['currentStrategicView'] }) {
+  return (
+    <Card className="bg-surface/70 shadow-none">
+      <CardContent className="space-y-2 px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <ConfidenceBadge confidence={view.confidence} />
+        </div>
+        <p className="text-text-primary text-lg leading-6 font-semibold tracking-[-0.02em]">
+          {view.title}
+        </p>
+        <p className="text-text-secondary text-sm leading-5">{view.explanation}</p>
+        <p className="text-text-secondary text-sm leading-5">{view.confidenceRationale}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function HypothesisCard({
   hypothesis,
   featured = false,
 }: {
-  hypothesis: ReturnType<typeof createMockReasoning>['hypotheses'][number];
+  hypothesis: StrategicHypothesis;
   featured?: boolean;
 }) {
   return (
@@ -160,20 +238,40 @@ function HypothesisCard({
         </CardTitle>
         <p className="text-text-secondary text-base leading-6">{hypothesis.explanation}</p>
       </CardHeader>
-      <CardContent className="px-5 pb-5 sm:px-6">
-        <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
-          What is supporting this view
-        </p>
-        <ul className="text-text-secondary mt-2 space-y-1.5 text-sm leading-5">
-          {hypothesis.supportingObservations.map((observation) => (
-            <li key={observation} className="flex gap-2">
-              <span aria-hidden className="bg-border-soft mt-2 size-1 shrink-0 rounded-full" />
-              {observation}
-            </li>
-          ))}
-        </ul>
+      <CardContent className="space-y-4 px-5 pb-5 sm:px-6">
+        <EvidenceList label="What is supporting this view" items={hypothesis.supportingEvidence} />
+        <EvidenceList label="What may challenge it" items={hypothesis.conflictingEvidence} />
+        <EvidenceList label="What I still need to learn" items={hypothesis.unknowns} />
+        <p className="text-text-secondary text-sm leading-5">{hypothesis.confidenceRationale}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function EvidenceList({
+  label,
+  items,
+}: {
+  label: string;
+  items: Array<{ explanation: string }> | string[];
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div>
+      <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">{label}</p>
+      <ul className="text-text-secondary mt-2 space-y-1.5 text-sm leading-5">
+        {items.map((item) => {
+          const content = typeof item === 'string' ? item : item.explanation;
+          return (
+            <li key={content} className="flex gap-2">
+              <span aria-hidden className="bg-border-soft mt-2 size-1 shrink-0 rounded-full" />
+              {content}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -197,16 +295,22 @@ function StatusBadge({ status }: { status: HypothesisStatus }) {
   return <Badge variant={variant}>{status}</Badge>;
 }
 
-function ConfidenceBadge({ confidence }: { confidence: ReasoningConfidence }) {
+function ConfidenceBadge({ confidence }: { confidence: ConfidenceLevel }) {
   const variant =
     confidence === 'High' ? 'success' : confidence === 'Moderate' ? 'warning' : 'learning';
   return <Badge variant={variant}>{confidence} confidence</Badge>;
 }
 
-function ReadinessBadge({ status }: { status: 'Not Ready' | 'Almost Ready' | 'Ready' }) {
-  const variant =
-    status === 'Ready' ? 'success' : status === 'Almost Ready' ? 'warning' : 'learning';
-  return <Badge variant={variant}>{status}</Badge>;
+function ActionBadge({ action }: { action: NextCognitiveAction }) {
+  const label = {
+    ask: 'Question worth asking',
+    clarify: 'Clarification would help',
+    challenge: 'An assumption to examine',
+    explain: 'A view worth explaining',
+    ready_for_guidance: 'Ready for guidance',
+  }[action];
+
+  return <Badge variant={action === 'ready_for_guidance' ? 'success' : 'learning'}>{label}</Badge>;
 }
 
 export { GuardianIntelligenceView };
