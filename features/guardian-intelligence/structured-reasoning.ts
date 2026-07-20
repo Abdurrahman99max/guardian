@@ -38,20 +38,6 @@ Decision context:
 
 Use calm, clear founder-facing language. Do not mention models, prompts, APIs, or implementation details.`;
 
-const unsupportedConclusionPatterns = [
-  /product[ -]market fit/i,
-  /network effects?/i,
-  /predictable recurring revenue/i,
-  /organic growth engine/i,
-];
-
-const recommendationPatterns = [
-  /\brecommend(?:ation|ed|s)?\b/i,
-  /\baction plan\b/i,
-  /\bshould (?:pivot|prioritize|launch|hire|invest|change)\b/i,
-  /\bpivot(?:ing)?\b/i,
-];
-
 export class ReasoningOutputValidationError extends Error {
   constructor() {
     super('Guardian received reasoning that did not satisfy its output contract.');
@@ -74,16 +60,26 @@ function collectReferences(output: Omit<ReasoningOutput, 'evidence'>): EvidenceR
   ];
 }
 
-function collectConclusionText(output: Omit<ReasoningOutput, 'evidence'>) {
-  return [
-    ...output.model.strategicStrengths,
-    ...output.model.strategicRisks,
-    ...output.hypotheses.flatMap((hypothesis) => [hypothesis.title, hypothesis.explanation]),
-    output.currentStrategicView.title,
-    output.currentStrategicView.explanation,
-    output.decisionContext.summary,
-    output.decisionContext.rationale,
-  ].join(' ');
+function calibrateConfidence(
+  output: Omit<ReasoningOutput, 'evidence'>,
+  hasConfirmedEvidence: boolean,
+  hasMaterialTension: boolean,
+) {
+  if (hasConfirmedEvidence && !hasMaterialTension) return output;
+
+  const rationale = hasMaterialTension
+    ? 'This cannot be higher while a material ambiguity remains unresolved.'
+    : 'This cannot be higher because the current view relies on founder claims rather than independently confirmed evidence.';
+  const calibrate = <T extends { confidence: string; confidenceRationale: string }>(item: T): T =>
+    item.confidence === 'High'
+      ? { ...item, confidence: 'Moderate', confidenceRationale: rationale }
+      : item;
+
+  return {
+    ...output,
+    hypotheses: output.hypotheses.map(calibrate),
+    currentStrategicView: calibrate(output.currentStrategicView),
+  };
 }
 
 function validateReasoningOutput(
@@ -99,10 +95,6 @@ function validateReasoningOutput(
   const hasOneLeadingHypothesis =
     output.hypotheses.filter((hypothesis) => hypothesis.status === 'Leading').length === 1;
   const materialTensions = output.tensions.filter((tension) => tension.materiality === 'material');
-  const highConfidenceExists = [
-    output.currentStrategicView.confidence,
-    ...output.hypotheses.map((hypothesis) => hypothesis.confidence),
-  ].includes('High');
   const hasConfirmedEvidence = evidence.some((item) => item.certainty === 'confirmed');
   const needsClarification = materialTensions.length > 0;
   const actionRequiresQuestion = ['ask', 'clarify', 'challenge'].includes(
@@ -111,30 +103,21 @@ function validateReasoningOutput(
   const hasInformationGain =
     output.decisionContext.informationGain.uncertaintiesAddressed.length > 0 &&
     output.decisionContext.informationGain.hypothesesDifferentiated.length > 0;
-  const conclusionText = collectConclusionText(output);
-  const evidenceText = evidence.map((item) => item.content).join(' ');
-  const hasUnsupportedConclusion = unsupportedConclusionPatterns.some(
-    (pattern) => pattern.test(conclusionText) && !pattern.test(evidenceText),
-  );
-  const crossesRecommendationBoundary = recommendationPatterns.some((pattern) =>
-    pattern.test(conclusionText),
-  );
 
   if (
     hasInvalidReference ||
     !hasOneLeadingHypothesis ||
-    (highConfidenceExists && (!hasConfirmedEvidence || needsClarification)) ||
     (needsClarification &&
       (!['clarify', 'challenge'].includes(output.decisionContext.nextAction) ||
         !output.decisionContext.question ||
         !hasInformationGain ||
         output.decisionContext.informationGain.expectedConfidenceEffect !== 'clarify')) ||
-    (actionRequiresQuestion && (!output.decisionContext.question || !hasInformationGain)) ||
-    hasUnsupportedConclusion ||
-    crossesRecommendationBoundary
+    (actionRequiresQuestion && (!output.decisionContext.question || !hasInformationGain))
   ) {
     throw new ReasoningOutputValidationError();
   }
+
+  return calibrateConfidence(output, hasConfirmedEvidence, needsClarification);
 }
 
 export async function createStructuredReasoning(
@@ -168,8 +151,8 @@ export async function createStructuredReasoning(
     if (!output) continue;
 
     try {
-      validateReasoningOutput(output, evidence);
-      return { ...output, evidence };
+      const calibratedOutput = validateReasoningOutput(output, evidence);
+      return { ...calibratedOutput, evidence };
     } catch (error) {
       if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
     }
