@@ -36,23 +36,6 @@ export function classifyReasoningFailure(error: unknown): ReasoningFailureCatego
   return 'unknown';
 }
 
-export function isTransientReasoningFailure(error: unknown) {
-  const category = classifyReasoningFailure(error);
-  return (
-    category === 'network' ||
-    category === 'timeout' ||
-    category === 'rate_limit' ||
-    category === 'provider_unavailable'
-  );
-}
-
-export function logReasoningRetry(provider: string, error: unknown) {
-  console.warn('Guardian reasoning provider will retry a transient failure', {
-    provider,
-    category: classifyReasoningFailure(error),
-  });
-}
-
 export function logReasoningFailure(provider: string, error: unknown) {
   const apiError = error instanceof OpenAI.APIError ? error : null;
 

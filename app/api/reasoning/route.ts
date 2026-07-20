@@ -1,38 +1,11 @@
 import { NextResponse } from 'next/server';
 
-import {
-  isTransientReasoningFailure,
-  logReasoningFailure,
-  logReasoningRetry,
-} from '@/features/guardian-intelligence/reasoning-diagnostics';
-import type { ReasoningProvider } from '@/features/guardian-intelligence/reasoning-provider';
+import { logReasoningFailure } from '@/features/guardian-intelligence/reasoning-diagnostics';
 import { resolveReasoningProvider } from '@/features/guardian-intelligence/reasoning-provider-resolver';
 import { reasoningRequestSchema } from '@/features/guardian-intelligence/reasoning-schemas';
-import type { ReasoningRequest, ReasoningResult } from '@/features/guardian-intelligence/types';
+import type { ReasoningResult } from '@/features/guardian-intelligence/types';
 
 export const runtime = 'nodejs';
-
-const transientRetryDelayMs = 250;
-
-function pause(milliseconds: number) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-async function reasonWithTransientRetry(
-  providerName: string,
-  provider: ReasoningProvider,
-  request: ReasoningRequest,
-) {
-  try {
-    return await provider.reason(request);
-  } catch (error) {
-    if (!isTransientReasoningFailure(error)) throw error;
-
-    logReasoningRetry(providerName, error);
-    await pause(transientRetryDelayMs);
-    return provider.reason(request);
-  }
-}
 
 export async function POST(request: Request) {
   const parsedRequest = reasoningRequestSchema.safeParse(await request.json());
@@ -66,11 +39,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const output = await reasonWithTransientRetry(
-      resolution.name,
-      resolution.provider,
-      parsedRequest.data,
-    );
+    const output = await resolution.provider.reason(parsedRequest.data);
 
     return NextResponse.json<ReasoningResult>({ status: 'ready', output });
   } catch (error) {
