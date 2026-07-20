@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { OpenAIReasoningProvider } from '@/features/guardian-intelligence/openai-reasoning-provider';
+import { logReasoningFailure } from '@/features/guardian-intelligence/reasoning-diagnostics';
+import { resolveReasoningProvider } from '@/features/guardian-intelligence/reasoning-provider-resolver';
 import { reasoningRequestSchema } from '@/features/guardian-intelligence/reasoning-schemas';
 import type { ReasoningResult } from '@/features/guardian-intelligence/types';
 
@@ -19,9 +20,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const resolution = resolveReasoningProvider();
 
-  if (!apiKey) {
+  if (!resolution.ok) {
+    console.error('Guardian reasoning provider is unavailable', {
+      provider: resolution.name,
+      category: resolution.failure,
+    });
+
     return NextResponse.json<ReasoningResult>(
       {
         status: 'unavailable',
@@ -33,14 +39,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const provider = new OpenAIReasoningProvider(
-      apiKey,
-      process.env.OPENAI_REASONING_MODEL ?? 'gpt-5.6-sol',
-    );
-    const output = await provider.reason(parsedRequest.data);
+    const output = await resolution.provider.reason(parsedRequest.data);
 
     return NextResponse.json<ReasoningResult>({ status: 'ready', output });
-  } catch {
+  } catch (error) {
+    logReasoningFailure(resolution.name, error);
+
     return NextResponse.json<ReasoningResult>(
       {
         status: 'unavailable',
