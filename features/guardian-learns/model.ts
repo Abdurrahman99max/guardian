@@ -80,7 +80,7 @@ export const learningPrompts: LearningPrompt[] = [
     prompt: 'How do you expect the company to create and capture value?',
     supportingText: 'You can describe the model as it exists today, even if it is still evolving.',
     reflection:
-      'I have a more useful starting point for how the business could become sustainable.',
+      'The current evidence offers a more useful starting point for how the business could become sustainable.',
     synthesize: (response) => response,
   },
   {
@@ -96,7 +96,8 @@ export const learningPrompts: LearningPrompt[] = [
     areaId: 'advantage',
     prompt: 'What could make your company difficult to replace if it works?',
     supportingText: 'It is fine if this is still a hypothesis rather than a proven advantage.',
-    reflection: 'I have an initial view of where a defensible advantage may emerge.',
+    reflection:
+      'The current evidence offers an initial view of where a defensible advantage may emerge.',
     synthesize: (response) => response,
   },
 ];

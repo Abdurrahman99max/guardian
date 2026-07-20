@@ -490,7 +490,7 @@ function Reflection({
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3 px-1 pt-2 pb-1 sm:px-2">
           <Button size="sm" onClick={onContinue}>
-            {final ? 'Review my understanding' : 'Continue learning'}
+            {final ? 'Review the working picture' : 'Continue learning'}
           </Button>
           <Button
             size="sm"
@@ -523,13 +523,13 @@ function Summary({
     <motion.div initial="hidden" animate="visible" exit="exit" variants={cardReveal}>
       <Card>
         <CardHeader className="gap-3 px-5 py-5 sm:px-7 sm:py-6">
-          <p className="text-guardian-blue text-sm font-medium">My current understanding</p>
+          <p className="text-guardian-blue text-sm font-medium">Current working picture</p>
           <CardTitle className="text-[2rem] leading-[1.1] tracking-[-0.045em] sm:text-[2.75rem]">
-            Here is the working picture I&apos;ve built.
+            Here is the working picture shaped by the evidence so far.
           </CardTitle>
           <p className="text-text-secondary max-w-xl text-base leading-6">
-            Based on what you&apos;ve shared, this is my initial interpretation. I&apos;m more
-            confident in some areas than others.
+            This is an initial interpretation of what has been shared. The evidence is stronger in
+            some areas than others.
           </p>
         </CardHeader>
         <CardContent className="grid gap-2.5 px-5 pb-5 sm:grid-cols-2 sm:px-7 sm:pb-7">
@@ -556,7 +556,7 @@ function Summary({
               </div>
               <p className="text-text-secondary mt-2 text-sm leading-6 break-words">
                 {cardsByArea.get(area.id)?.summary ??
-                  'I do not have enough context to form a useful view yet.'}
+                  'There is not enough context to form a useful view yet.'}
               </p>
             </div>
           ))}

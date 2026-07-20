@@ -636,7 +636,7 @@ function HypothesisCard({
       <CardContent className="space-y-4 px-5 pb-5 sm:px-6">
         <EvidenceList label="What is supporting this view" items={hypothesis.supportingEvidence} />
         <EvidenceList label="What may challenge it" items={hypothesis.conflictingEvidence} />
-        <EvidenceList label="What I still need to learn" items={hypothesis.unknowns} />
+        <EvidenceList label="What still needs to be learned" items={hypothesis.unknowns} />
         <p className="text-text-secondary text-sm leading-5">{hypothesis.confidenceRationale}</p>
       </CardContent>
     </Card>
