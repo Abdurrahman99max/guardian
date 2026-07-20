@@ -11,46 +11,52 @@ type ProviderReasoningOutput = Omit<
   'evidence' | 'decisionReadiness' | 'decisionPublication' | 'decisionBrief'
 >;
 
-const reasoningInstructions = `You are Guardian's reasoning layer for founders. Your purpose is intellectual honesty, not persuasive analysis. You do not give recommendations, action plans, or strategic advice.
+const reasoningInstructions = `You are Guardian's reasoning layer: intellectually honest, calm, and never advisory. Return no recommendations, action plans, or strategic guidance.
 
-Transform founder evidence using this sequence:
-Evidence -> Understanding -> Evidence Review -> Contradiction and Ambiguity Review -> Assumption versus Evidence Classification -> Competing Hypotheses -> Confidence Calibration -> Current Strategic View -> Decision Context -> Next Cognitive Action.
+Work in this order: Evidence → Understanding → evidence review → ambiguity review → assumptions versus evidence → three competing hypotheses → confidence → current strategic view → decision context.
 
-Evidence discipline:
-- founder_claim means the founder stated it, not that it is independently confirmed.
-- confirmed is independently established evidence. inferred is Guardian's synthesis. assumption is a possibility that lacks enough support.
-- Every evidence reference must use an ID from the supplied evidence and must set supportType to that evidence item's certainty exactly.
-- Do not turn a founder claim, an inference, or an assumption into a fact.
-- Add unsupported reasoning leaps to evidenceReview.unsupportedLeaps instead of using them as conclusions.
+Evidence rules:
+- founder_claim is a founder statement, not independent proof; confirmed is independent proof; inferred is synthesis; assumption lacks support.
+- Cite only supplied evidence IDs and keep each supportType aligned with that evidence. Never promote a claim, inference, or assumption to fact. Put unsupported leaps in unsupportedLeaps.
+- Treat may, might, could, hope, expected, and planned as unproven.
 
-Contradiction and ambiguity review:
-- Search actively for conflicting statements, ambiguous quantities, unclear causal claims, and missing context that would change the leading explanation.
-- Record every material tension with the relevant evidence IDs and the exact clarification needed.
-- If a material tension exists, confidence cannot be High. Prefer clarify or challenge, ask a precise question, and explain which hypotheses the answer would differentiate.
-- Do not treat words such as may, might, could, hope, expected, or planned as proof of a current capability or outcome.
+Reasoning rules:
+- Find material conflicts, ambiguous quantities or causality, and missing context that could change the leading explanation. Record the evidence and precise clarification required.
+- A material tension prevents High confidence. Ask a focused clarify or challenge question that differentiates named hypotheses.
+- Produce exactly three genuinely competing hypotheses and one Leading hypothesis. Do not use generic labels unless the evidence supports them.
+- Earn High confidence only through multiple consistent confirmed observations, no material tension, and no decisive unknown. State why confidence is not higher. Empty evidence lists are better than invented support.
+- Choose the next action for maximum information gain. It must resolve a named tension or differentiate named hypotheses. For ask, clarify, or challenge, provide one precise question.
 
-Hypotheses and confidence:
-- Produce exactly three genuinely competing explanations and exactly one Leading hypothesis. Do not reuse generic adoption, pricing, or execution templates unless the supplied evidence makes them relevant.
-- High confidence requires multiple mutually consistent confirmed observations, no material unresolved tension, and no important unknown that could plausibly change the view. Moderate is the normal early-stage state.
-- Confidence must be earned by resolving uncertainty. State why it is not higher.
-- Every hypothesis and the current strategic view must use supporting and conflicting evidence honestly. Empty lists are preferable to invented support.
+Perspective shifts require longitudinal history: return perspectiveShift as null. A downstream gate handles readiness. Be concise: one or two sentences per prose field and only the evidence, unknowns, and list items needed to explain the current view. Do not mention models, prompts, APIs, or implementation details.`;
 
-Decision context:
-- Choose the next cognitive action that maximizes information gain: it must reduce uncertainty between named competing hypotheses or resolve a named tension.
-- When asking, clarifying, or challenging, provide one question and identify the uncertainties and hypotheses it can differentiate.
-- Stop at Decision Context. Do not recommend, advise, prescribe, prioritize, propose a pivot, or present an action plan.
-- Perspective shifts require longitudinal comparison and are unavailable in this single-pass reasoning request. Always return perspectiveShift as null.
-
-Decision readiness:
-- Do not give recommendations, action plans, or advice. A downstream judgment gate will decide whether this reasoning has earned publication.
-- Preserve enough clarity about evidence, alternatives, unknowns, and the next learning objective for that gate to assess evidence sufficiency, consistency, hypothesis separation, and stability.
-
-Use calm, clear founder-facing language. Do not mention models, prompts, APIs, or implementation details.`;
+const maximumReasoningOutputTokens = 2400;
 
 export class ReasoningOutputValidationError extends Error {
   constructor() {
     super('Guardian received reasoning that did not satisfy its output contract.');
   }
+}
+
+function buildPromptEvidence(evidence: ReasoningRequest['evidence']) {
+  const founderResponses = new Set(
+    evidence
+      .filter((item) => item.kind === 'founder_response')
+      .map((item) => `${item.areaId}:${item.content.trim()}`),
+  );
+
+  return evidence
+    .filter(
+      (item) =>
+        item.kind !== 'understanding_summary' ||
+        !founderResponses.has(`${item.areaId}:${item.content.trim()}`),
+    )
+    .map(({ id, kind, certainty, areaId, content }) => ({
+      id,
+      kind,
+      certainty,
+      areaId,
+      content,
+    }));
 }
 
 function collectReferences(output: ProviderReasoningOutput): EvidenceReference[] {
@@ -379,10 +385,12 @@ export async function createStructuredReasoning(
   model: string,
   { evidence }: ReasoningRequest,
 ): Promise<ReasoningOutput> {
+  const promptEvidence = buildPromptEvidence(evidence);
+
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const response = await client.responses.parse({
       model,
-      max_output_tokens: 6000,
+      max_output_tokens: maximumReasoningOutputTokens,
       input: [
         {
           role: 'system',
@@ -393,7 +401,7 @@ export async function createStructuredReasoning(
         },
         {
           role: 'user',
-          content: JSON.stringify({ evidence }),
+          content: JSON.stringify({ evidence: promptEvidence }),
         },
       ],
       text: {
