@@ -82,16 +82,67 @@ function calibrateConfidence(
   };
 }
 
-function validateReasoningOutput(
+function normalizeEvidenceSupportTypes(
   output: Omit<ReasoningOutput, 'evidence'>,
   evidence: ReasoningRequest['evidence'],
 ) {
   const evidenceById = new Map(evidence.map((item) => [item.id, item]));
-  const references = collectReferences(output);
-  const hasInvalidReference = references.some((reference) => {
+  const normalizeReference = (reference: EvidenceReference): EvidenceReference => {
     const source = evidenceById.get(reference.evidenceId);
-    return !source || source.certainty !== reference.supportType;
-  });
+    return source ? { ...reference, supportType: source.certainty } : reference;
+  };
+
+  return {
+    ...output,
+    evidenceReview: {
+      ...output.evidenceReview,
+      confirmedEvidence: output.evidenceReview.confirmedEvidence.map(normalizeReference),
+      founderClaims: output.evidenceReview.founderClaims.map(normalizeReference),
+      inferences: output.evidenceReview.inferences.map(normalizeReference),
+      assumptions: output.evidenceReview.assumptions.map(normalizeReference),
+    },
+    tensions: output.tensions.map((tension) => ({
+      ...tension,
+      evidence: tension.evidence.map(normalizeReference),
+    })),
+    hypotheses: output.hypotheses.map((hypothesis) => ({
+      ...hypothesis,
+      supportingEvidence: hypothesis.supportingEvidence.map(normalizeReference),
+      conflictingEvidence: hypothesis.conflictingEvidence.map(normalizeReference),
+    })),
+    currentStrategicView: {
+      ...output.currentStrategicView,
+      supportingEvidence: output.currentStrategicView.supportingEvidence.map(normalizeReference),
+      conflictingEvidence: output.currentStrategicView.conflictingEvidence.map(normalizeReference),
+    },
+  };
+}
+
+function prioritizeClarificationForMaterialTensions(output: Omit<ReasoningOutput, 'evidence'>) {
+  if (!output.tensions.some((tension) => tension.materiality === 'material')) return output;
+
+  return {
+    ...output,
+    decisionContext: {
+      ...output.decisionContext,
+      nextAction: 'clarify' as const,
+      informationGain: {
+        ...output.decisionContext.informationGain,
+        expectedConfidenceEffect: 'clarify' as const,
+      },
+    },
+  };
+}
+
+function validateReasoningOutput(
+  output: Omit<ReasoningOutput, 'evidence'>,
+  evidence: ReasoningRequest['evidence'],
+) {
+  const evidenceIds = new Set(evidence.map((item) => item.id));
+  const references = collectReferences(output);
+  const hasUnknownEvidenceReference = references.some(
+    (reference) => !evidenceIds.has(reference.evidenceId),
+  );
   const hasOneLeadingHypothesis =
     output.hypotheses.filter((hypothesis) => hypothesis.status === 'Leading').length === 1;
   const materialTensions = output.tensions.filter((tension) => tension.materiality === 'material');
@@ -105,7 +156,7 @@ function validateReasoningOutput(
     output.decisionContext.informationGain.hypothesesDifferentiated.length > 0;
 
   if (
-    hasInvalidReference ||
+    hasUnknownEvidenceReference ||
     !hasOneLeadingHypothesis ||
     (needsClarification &&
       (!['clarify', 'challenge'].includes(output.decisionContext.nextAction) ||
@@ -151,7 +202,10 @@ export async function createStructuredReasoning(
     if (!output) continue;
 
     try {
-      const calibratedOutput = validateReasoningOutput(output, evidence);
+      const normalizedOutput = prioritizeClarificationForMaterialTensions(
+        normalizeEvidenceSupportTypes(output, evidence),
+      );
+      const calibratedOutput = validateReasoningOutput(normalizedOutput, evidence);
       return { ...calibratedOutput, evidence };
     } catch (error) {
       if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
