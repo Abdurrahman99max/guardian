@@ -19,18 +19,32 @@ function normalized(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
+function normalizedList(values: string[]) {
+  return values.map(normalized).sort().join('|');
+}
+
 function isMeaningfullyDifferent(previous: DecisionBrief, next: DecisionBriefDraft) {
   return (
     previous.strategicFocus.kind !== next.strategicFocus.kind ||
     normalized(previous.strategicFocus.title) !== normalized(next.strategicFocus.title) ||
-    previous.strategicFocus.linkedFocuses.map(normalized).join('|') !==
-      next.strategicFocus.linkedFocuses.map(normalized).join('|') ||
+    normalizedList(previous.strategicFocus.linkedFocuses) !==
+      normalizedList(next.strategicFocus.linkedFocuses) ||
     previous.decisionReadiness.mode !== next.decisionReadiness.mode ||
     previous.decisionReadiness.evidenceSufficiency !== next.decisionReadiness.evidenceSufficiency ||
     previous.decisionReadiness.evidenceConsistency !== next.decisionReadiness.evidenceConsistency ||
     previous.decisionReadiness.hypothesisSeparation !==
       next.decisionReadiness.hypothesisSeparation ||
     previous.decisionReadiness.decisionStability !== next.decisionReadiness.decisionStability ||
+    previous.supportingEvidence
+      .map((evidence) => evidence.evidenceId)
+      .sort()
+      .join('|') !==
+      next.supportingEvidence
+        .map((evidence) => evidence.evidenceId)
+        .sort()
+        .join('|') ||
+    normalizedList(previous.remainingUncertainty) !== normalizedList(next.remainingUncertainty) ||
+    normalizedList(previous.transitionConditions) !== normalizedList(next.transitionConditions) ||
     previous.confidence !== next.confidence
   );
 }
