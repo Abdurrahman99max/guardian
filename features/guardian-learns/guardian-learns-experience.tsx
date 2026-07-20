@@ -38,6 +38,14 @@ import { learningPrompts, understandingAreas, type UnderstandingCard } from './m
 type View = 'introduction' | 'learning' | 'reflection' | 'summary' | 'transition' | 'intelligence';
 type ResumeDestination = { type: 'prompt'; index: number } | { type: 'summary' } | null;
 
+const questionPurposes: Record<string, string> = {
+  problem: 'This helps distinguish an important pain from a convenient idea.',
+  customer: 'This helps identify whose constraints should shape the strategic view.',
+  'business-model': 'This helps test whether the value being created can become sustainable.',
+  'current-stage': 'This helps place the evidence in the right stage of the company’s development.',
+  advantage: 'This helps separate a hopeful feature from a defensible difference.',
+};
+
 function GuardianLearnsExperience() {
   const [view, setView] = useState<View>('introduction');
   const [promptIndex, setPromptIndex] = useState(0);
@@ -222,6 +230,7 @@ function GuardianLearnsExperience() {
                   response={response}
                   editing={Boolean(editingCardId)}
                   canReviewPrevious={promptIndex > 0 && resumeDestination === null}
+                  purpose={questionPurposes[activePrompt.areaId]}
                   onResponseChange={setResponse}
                   onSubmit={submitResponse}
                   onReviewPrevious={reviewPreviousThought}
@@ -297,6 +306,15 @@ function GuardianLearnsExperience() {
                   />
                 ))}
               </div>
+              {cards.length >= 2 && (
+                <div className="border-border-soft/60 mt-3 border-t px-1 pt-4">
+                  <p className="text-text-primary text-sm font-medium">Working picture</p>
+                  <p className="text-text-secondary mt-1 text-sm leading-5">
+                    Guardian is connecting {cards.length} areas so far. You can refine any of them
+                    before a strategic view is formed.
+                  </p>
+                </div>
+              )}
             </div>
           </aside>
         </div>
@@ -371,6 +389,7 @@ function PromptCard({
   response,
   editing,
   canReviewPrevious,
+  purpose,
   onResponseChange,
   onSubmit,
   onReviewPrevious,
@@ -380,6 +399,7 @@ function PromptCard({
   response: string;
   editing: boolean;
   canReviewPrevious: boolean;
+  purpose: string;
   onResponseChange: (value: string) => void;
   onSubmit: () => void;
   onReviewPrevious: () => void;
@@ -397,6 +417,9 @@ function PromptCard({
             </CardTitle>
             <p className="text-text-secondary max-w-lg text-base leading-6">
               {prompt.supportingText}
+            </p>
+            <p className="border-guardian-blue/15 text-text-secondary max-w-lg border-l-2 pl-3 text-sm leading-5">
+              Why this matters: {purpose}
             </p>
           </div>
         </CardHeader>
@@ -577,14 +600,31 @@ function Transition({ onExploreReasoning }: { onExploreReasoning: () => void }) 
               Guardian is ready to begin reasoning with you.
             </CardTitle>
             <p className="text-text-secondary max-w-lg text-base leading-6">
-              I have enough context to form useful strategic hypotheses. I&apos;ll keep the
-              uncertainty visible as the model evolves.
+              The available context is ready for a first evidence review. Guardian will keep the
+              uncertainty visible before publishing any strategic judgment.
             </p>
           </div>
         </CardHeader>
-        <CardContent className="px-1 pt-2 pb-1 sm:px-2">
+        <CardContent className="space-y-4 px-1 pt-2 pb-1 sm:px-2">
+          <div className="grid max-w-xl gap-2 sm:grid-cols-3">
+            {[
+              ['Learning', 'Understanding is collected and kept open.'],
+              ['Readiness', 'Evidence and alternatives are evaluated.'],
+              ['Decision Brief', 'A judgment is published only when earned.'],
+            ].map(([label, description], index) => (
+              <div
+                key={label}
+                className="border-border-soft/60 border-l pl-3 first:border-l-0 first:pl-0"
+              >
+                <p className="text-text-primary text-sm font-medium">
+                  {index + 1}. {label}
+                </p>
+                <p className="text-text-secondary mt-1 text-xs leading-5">{description}</p>
+              </div>
+            ))}
+          </div>
           <Button size="sm" onClick={onExploreReasoning}>
-            See current reasoning
+            Begin evidence review
           </Button>
           <p className="text-text-secondary mt-3 text-sm">
             Account creation comes after Guardian has demonstrated lasting value.

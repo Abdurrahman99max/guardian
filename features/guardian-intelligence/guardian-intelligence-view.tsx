@@ -105,6 +105,30 @@ function GuardianIntelligenceView({
 function ReasoningStatus({ result }: { result: ReasoningResult | null }) {
   const loading = result === null;
   const unavailableMessage = result?.status === 'unavailable' ? result.message : null;
+  const [stage, setStage] = useState(0);
+  const stages = [
+    ['Reviewing evidence', 'Guardian is separating what was shared from what still needs support.'],
+    [
+      'Comparing explanations',
+      'Guardian is keeping competing possibilities visible before settling on a current view.',
+    ],
+    [
+      'Preparing decision context',
+      'Guardian is checking whether the available evidence has earned a strategic judgment.',
+    ],
+  ];
+
+  useEffect(() => {
+    if (!loading) return;
+
+    const timer = window.setInterval(
+      () => setStage((current) => (current + 1) % stages.length),
+      1800,
+    );
+    return () => window.clearInterval(timer);
+  }, [loading, stages.length]);
+
+  const activeStage = stages[stage];
 
   return (
     <motion.div
@@ -114,17 +138,15 @@ function ReasoningStatus({ result }: { result: ReasoningResult | null }) {
       className="max-w-2xl px-1 sm:px-2"
     >
       <p className="text-guardian-blue text-sm font-medium">
-        {loading ? 'Guardian is reviewing what it has learned.' : 'Reasoning needs more clarity.'}
+        {loading ? activeStage[0] : 'Reasoning needs more clarity.'}
       </p>
       <h1 className="text-text-primary mt-3 text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
         {loading
-          ? 'I’m turning your perspective into a working strategic view.'
-          : 'I’m not ready to present a reliable strategic view yet.'}
+          ? 'Your evidence is becoming a working strategic view.'
+          : 'A reliable strategic view is not available yet.'}
       </h1>
       <p className="text-text-secondary mt-4 max-w-xl text-base leading-6">
-        {loading
-          ? 'I’ll keep the evidence, alternatives, and uncertainty connected so you can see why my view is taking shape.'
-          : unavailableMessage}
+        {loading ? activeStage[1] : unavailableMessage}
       </p>
     </motion.div>
   );
@@ -158,17 +180,17 @@ function ReasoningExperience({
         <div className="max-w-2xl space-y-3 px-1 sm:px-2">
           <p className="text-guardian-blue text-sm font-medium">
             {reasoning.decisionPublication.mode === 'decision'
-              ? 'Guardian has a working strategic judgment.'
-              : 'Guardian is still learning before it judges.'}
+              ? 'The evidence has earned a working strategic judgment.'
+              : 'The evidence is still being developed before judgment.'}
           </p>
           <h1 className="text-text-primary text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
             {reasoning.decisionPublication.mode === 'decision'
-              ? 'Here is the decision context I believe is ready to hold.'
-              : 'Here is how I&apos;m currently seeing the company.'}
+              ? 'The current decision context is ready to hold.'
+              : 'This is the company’s current strategic picture.'}
           </h1>
           <p className="text-text-secondary max-w-xl text-base leading-6">
-            This is a working view, not a conclusion. It will change as Guardian learns more about
-            the company and its environment.
+            This is a provisional view grounded in the available evidence. It can evolve as new
+            evidence changes the strategic picture.
           </p>
         </div>
       </motion.div>
@@ -189,7 +211,7 @@ function ReasoningExperience({
             </ReasoningSection>
           )}
 
-          <ReasoningSection label="Other possibilities I'm still holding">
+          <ReasoningSection label="Other possibilities still under consideration">
             <div className="space-y-2.5">
               {alternatives.map((hypothesis) => (
                 <HypothesisCard key={hypothesis.id} hypothesis={hypothesis} />
@@ -214,18 +236,20 @@ function ReasoningExperience({
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-8">
-          <ReasoningSection label="Still learning">
-            <div className="space-y-4">
-              {reasoning.model.unknownAreas.map((unknown) => (
-                <div
-                  key={unknown}
-                  className="border-border-soft/60 border-t pt-3 first:border-t-0 first:pt-0"
-                >
-                  <p className="text-text-secondary text-sm leading-5">{unknown}</p>
-                </div>
-              ))}
-            </div>
-          </ReasoningSection>
+          {reasoning.model.unknownAreas.length > 0 && (
+            <ReasoningSection label="Still learning">
+              <div className="space-y-4">
+                {reasoning.model.unknownAreas.map((unknown) => (
+                  <div
+                    key={unknown}
+                    className="border-border-soft/60 border-t pt-3 first:border-t-0 first:pt-0"
+                  >
+                    <p className="text-text-secondary text-sm leading-5">{unknown}</p>
+                  </div>
+                ))}
+              </div>
+            </ReasoningSection>
+          )}
 
           <ReasoningSection label="Decision context">
             <Card className="bg-surface/70 shadow-none">
@@ -324,7 +348,7 @@ function DecisionPublicationCard({
           </CardTitle>
           <p className="text-text-secondary text-base leading-6">{brief.whyThisMatters}</p>
         </CardHeader>
-        <CardContent className="space-y-4 px-5 pb-5 sm:px-6">
+        <CardContent className="space-y-3 px-5 pb-5 sm:px-6">
           {brief.strategicFocus.kind === 'linked_pair' && (
             <div>
               <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
@@ -335,20 +359,39 @@ function DecisionPublicationCard({
               </p>
             </div>
           )}
-          <EvidenceList label="What supports this judgment" items={brief.supportingEvidence} />
-          <div>
-            <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
-              Alternative interpretation
-            </p>
-            <p className="text-text-secondary mt-2 text-sm leading-5">
-              {brief.alternativeInterpretation}
+          <div className="border-border-soft/60 border-l pl-3">
+            <p className="text-text-primary text-sm font-medium">Confidence: {brief.confidence}</p>
+            <p className="text-text-secondary mt-1 text-sm leading-5">
+              {reasoning.currentStrategicView.confidenceRationale}
             </p>
           </div>
-          <EvidenceList label="What could change this focus" items={brief.transitionConditions} />
           <p className="text-text-secondary text-sm leading-5">{brief.nextLearningObjective}</p>
+          <DetailsDisclosure label="Why this focus is supported">
+            <EvidenceList label="Connected evidence" items={brief.supportingEvidence} />
+          </DetailsDisclosure>
+          <DetailsDisclosure label="Alternative interpretation">
+            <p className="text-text-secondary text-sm leading-5">
+              {brief.alternativeInterpretation}
+            </p>
+          </DetailsDisclosure>
+          <DetailsDisclosure label="What could change this focus">
+            <EvidenceList label="Conditions for change" items={brief.transitionConditions} />
+          </DetailsDisclosure>
         </CardContent>
       </Card>
     </ReasoningSection>
+  );
+}
+
+function DetailsDisclosure({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <details className="border-border-soft/60 group border-t pt-3">
+      <summary className="text-text-primary flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium">
+        {label}
+        <ChevronDown className="text-text-secondary size-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="pt-3">{children}</div>
+    </details>
   );
 }
 
@@ -447,16 +490,24 @@ function StrategicContinuity({
                 </Button>
               )}
             </div>
-            {recentTransitions.map((transition) => (
-              <div key={transition.id} className="border-border-soft/60 border-t pt-3">
-                <p className="text-text-primary text-sm leading-5 font-medium">
-                  {transition.observation}
-                </p>
-                <p className="text-text-secondary mt-1 text-sm leading-5">
-                  {transition.confidenceChange}
-                </p>
+            {recentTransitions.length > 0 && (
+              <div className="border-border-soft/70 ml-1 space-y-4 border-l pl-4">
+                {recentTransitions.map((transition) => (
+                  <div key={transition.id} className="relative">
+                    <span
+                      aria-hidden
+                      className="bg-guardian-blue ring-surface absolute top-1.5 -left-[1.32rem] size-2 rounded-full ring-4"
+                    />
+                    <p className="text-text-primary text-sm leading-5 font-medium">
+                      {transition.observation}
+                    </p>
+                    <p className="text-text-secondary mt-1 text-sm leading-5">
+                      {transition.confidenceChange}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -499,56 +550,62 @@ function StrategicContinuity({
         )}
 
         {journalOpen && (
-          <div className="space-y-2.5">
+          <div className="border-border-soft/70 ml-1 space-y-3 border-l pl-4">
             {journal.briefs
               .slice()
               .reverse()
               .map((brief) => (
-                <Card key={brief.id} className="bg-surface/70 shadow-none">
-                  <CardContent className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5">
-                    <div>
-                      <p className="text-text-primary text-sm font-medium">
-                        Version {brief.version} · {brief.status}
-                      </p>
-                      <p className="text-text-secondary mt-1 text-sm leading-5">
-                        {brief.strategicFocus.title}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {!journal.milestones.some(
-                        (milestone) =>
-                          milestone.briefId === brief.id && milestone.kind === 'founder_pinned',
-                      ) && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="px-1"
-                          onClick={() =>
-                            transactJournal((repository) =>
-                              repository.pinMilestone(sessionId, brief.id),
-                            )
-                          }
-                        >
-                          Pin
-                        </Button>
-                      )}
-                      {brief.status !== 'current' && brief.status !== 'archived' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="px-1"
-                          onClick={() =>
-                            transactJournal((repository) =>
-                              repository.archiveBrief(sessionId, brief.id),
-                            )
-                          }
-                        >
-                          Archive
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div key={brief.id} className="relative">
+                  <span
+                    aria-hidden
+                    className="bg-learning ring-foundation absolute top-5 -left-[1.32rem] size-2 rounded-full ring-4"
+                  />
+                  <Card className="bg-surface/70 shadow-none">
+                    <CardContent className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5">
+                      <div>
+                        <p className="text-text-primary text-sm font-medium">
+                          Version {brief.version} · {brief.status}
+                        </p>
+                        <p className="text-text-secondary mt-1 text-sm leading-5">
+                          {brief.strategicFocus.title}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {!journal.milestones.some(
+                          (milestone) =>
+                            milestone.briefId === brief.id && milestone.kind === 'founder_pinned',
+                        ) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="px-1"
+                            onClick={() =>
+                              transactJournal((repository) =>
+                                repository.pinMilestone(sessionId, brief.id),
+                              )
+                            }
+                          >
+                            Pin
+                          </Button>
+                        )}
+                        {brief.status !== 'current' && brief.status !== 'archived' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="px-1"
+                            onClick={() =>
+                              transactJournal((repository) =>
+                                repository.archiveBrief(sessionId, brief.id),
+                              )
+                            }
+                          >
+                            Archive
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
           </div>
         )}
