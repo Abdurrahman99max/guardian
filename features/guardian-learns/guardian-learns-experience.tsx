@@ -21,7 +21,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { GuardianIntelligenceView } from '@/features/guardian-intelligence';
+import {
+  GuardianIntelligenceView,
+  type DecisionBriefHistory,
+} from '@/features/guardian-intelligence';
 import { cardReveal } from '@/lib/motion/presets';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +46,10 @@ function GuardianLearnsExperience() {
   const [mobileUnderstandingOpen, setMobileUnderstandingOpen] = useState(false);
   const [resumeDestination, setResumeDestination] = useState<ResumeDestination>(null);
   const [summaryReviewMode, setSummaryReviewMode] = useState(false);
+  const [decisionBriefHistory, setDecisionBriefHistory] = useState<DecisionBriefHistory>(() => ({
+    sessionId: crypto.randomUUID(),
+    briefs: [],
+  }));
 
   const activePrompt = learningPrompts[promptIndex];
   const activeArea = understandingAreas.find((area) => area.id === activePrompt?.areaId);
@@ -160,6 +167,8 @@ function GuardianLearnsExperience() {
       <GuardianIntelligenceView
         evidence={founderEvidence}
         onReturnToLearning={() => setView('summary')}
+        decisionBriefHistory={decisionBriefHistory}
+        onDecisionBriefHistoryChange={setDecisionBriefHistory}
       />
     );
   }

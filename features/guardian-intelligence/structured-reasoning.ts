@@ -36,6 +36,14 @@ Decision context:
 - Stop at Decision Context. Do not recommend, advise, prescribe, prioritize, propose a pivot, or present an action plan.
 - Perspective shifts require longitudinal comparison and are unavailable in this single-pass reasoning request. Always return perspectiveShift as null.
 
+Decision readiness and publication:
+- Assess readiness through evidence sufficiency, evidence consistency, hypothesis separation, critical unknowns, and decision stability. These measure uncertainty reduction, never the amount of text collected.
+- Set decisionPublication.mode to learning unless the evidence is sufficient and consistent, there is no material unresolved tension, one leading hypothesis is distinguishable, important unknowns do not block the judgment, and the view is reasonably stable.
+- In learning mode, decisionBrief must be null. Explain the precise uncertainty that prevents responsible judgment.
+- In decision mode, publish exactly one structured Decision Brief. It is a provisional judgment, not a recommendation: name the current strategic focus, why it matters, supporting evidence, one alternative interpretation, remaining uncertainty, readiness, the next learning objective, and what evidence would change the focus.
+- Use a linked_pair only when exactly two strategic uncertainties cannot responsibly be separated with the available evidence. Include exactly two linkedFocuses and why they remain inseparable. Otherwise use single with an empty linkedFocuses array and null whyLinked.
+- A Decision Brief must not prescribe actions, propose a plan, tell the founder what to do, or imply certainty.
+
 Use calm, clear founder-facing language. Do not mention models, prompts, APIs, or implementation details.`;
 
 export class ReasoningOutputValidationError extends Error {
@@ -57,6 +65,7 @@ function collectReferences(output: Omit<ReasoningOutput, 'evidence'>): EvidenceR
     ]),
     ...output.currentStrategicView.supportingEvidence,
     ...output.currentStrategicView.conflictingEvidence,
+    ...(output.decisionBrief?.supportingEvidence ?? []),
   ];
 }
 
@@ -115,6 +124,12 @@ function normalizeEvidenceSupportTypes(
       supportingEvidence: output.currentStrategicView.supportingEvidence.map(normalizeReference),
       conflictingEvidence: output.currentStrategicView.conflictingEvidence.map(normalizeReference),
     },
+    decisionBrief: output.decisionBrief
+      ? {
+          ...output.decisionBrief,
+          supportingEvidence: output.decisionBrief.supportingEvidence.map(normalizeReference),
+        }
+      : null,
   };
 }
 
@@ -174,6 +189,12 @@ function stabilizeReasoningOutput(
       supportingEvidence: keepKnownReferences(output.currentStrategicView.supportingEvidence),
       conflictingEvidence: keepKnownReferences(output.currentStrategicView.conflictingEvidence),
     },
+    decisionBrief: output.decisionBrief
+      ? {
+          ...output.decisionBrief,
+          supportingEvidence: keepKnownReferences(output.decisionBrief.supportingEvidence),
+        }
+      : null,
     decisionContext: {
       ...output.decisionContext,
       question:
@@ -191,6 +212,56 @@ function stabilizeReasoningOutput(
             : hypotheses.map((hypothesis) => hypothesis.id),
       },
     },
+  };
+}
+
+function applyDecisionPublicationGate(output: Omit<ReasoningOutput, 'evidence'>) {
+  const hasMaterialTension = output.tensions.some((tension) => tension.materiality === 'material');
+  const readiness = output.decisionReadiness;
+  const brief = output.decisionBrief;
+  const linkedFocusIsValid =
+    brief?.strategicFocus.kind === 'single'
+      ? brief.strategicFocus.linkedFocuses.length === 0 && brief.strategicFocus.whyLinked === null
+      : brief?.strategicFocus.linkedFocuses.length === 2 && Boolean(brief.strategicFocus.whyLinked);
+  const hasEarnedReadiness =
+    readiness.mode === 'decision' &&
+    readiness.evidenceSufficiency === 'sufficient' &&
+    readiness.evidenceConsistency === 'sufficient' &&
+    readiness.hypothesisSeparation === 'sufficient' &&
+    readiness.decisionStability === 'sufficient' &&
+    readiness.criticalUnknowns.length === 0 &&
+    !hasMaterialTension &&
+    brief !== null &&
+    linkedFocusIsValid;
+
+  if (hasEarnedReadiness) return output;
+
+  const blockers = [
+    hasMaterialTension ? 'A material ambiguity remains unresolved.' : null,
+    readiness.evidenceSufficiency !== 'sufficient'
+      ? 'The available evidence is not yet sufficient.'
+      : null,
+    readiness.evidenceConsistency !== 'sufficient'
+      ? 'The available evidence is not yet consistent enough.'
+      : null,
+    readiness.hypothesisSeparation !== 'sufficient'
+      ? 'The leading explanation is not yet distinct enough from alternatives.'
+      : null,
+    readiness.decisionStability !== 'sufficient'
+      ? 'The current view is not yet stable enough.'
+      : null,
+    readiness.criticalUnknowns[0] ?? null,
+  ].filter((blocker): blocker is string => Boolean(blocker));
+
+  return {
+    ...output,
+    decisionReadiness: { ...readiness, mode: 'learning' as const },
+    decisionPublication: {
+      mode: 'learning' as const,
+      reason:
+        blockers[0] ?? 'Guardian needs a clearer basis before publishing a strategic judgment.',
+    },
+    decisionBrief: null,
   };
 }
 
@@ -267,7 +338,7 @@ export async function createStructuredReasoning(
         stabilizeReasoningOutput(normalizeEvidenceSupportTypes(output, evidence), evidence),
       );
       const calibratedOutput = validateReasoningOutput(normalizedOutput, evidence);
-      return { ...calibratedOutput, evidence };
+      return { ...applyDecisionPublicationGate(calibratedOutput), evidence };
     } catch (error) {
       if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
     }

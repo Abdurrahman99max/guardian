@@ -10,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cardReveal } from '@/lib/motion/presets';
 
 import { requestReasoning } from './reasoning-client';
+import { appendDecisionBrief, type DecisionBriefHistory } from './decision-brief-history';
 import type {
   ConfidenceLevel,
+  DecisionBrief,
   FounderEvidence,
   HypothesisStatus,
   NextCognitiveAction,
@@ -23,22 +25,40 @@ import type {
 type GuardianIntelligenceViewProps = {
   evidence: FounderEvidence[];
   onReturnToLearning: () => void;
+  decisionBriefHistory: DecisionBriefHistory;
+  onDecisionBriefHistoryChange: (history: DecisionBriefHistory) => void;
 };
 
-function GuardianIntelligenceView({ evidence, onReturnToLearning }: GuardianIntelligenceViewProps) {
+function GuardianIntelligenceView({
+  evidence,
+  onReturnToLearning,
+  decisionBriefHistory,
+  onDecisionBriefHistoryChange,
+}: GuardianIntelligenceViewProps) {
   const [result, setResult] = useState<ReasoningResult | null>(null);
 
   useEffect(() => {
     let active = true;
 
     void requestReasoning({ evidence }).then((nextResult) => {
-      if (active) setResult(nextResult);
+      if (!active) return;
+
+      setResult(nextResult);
+      if (nextResult.status === 'ready' && nextResult.output.decisionBrief) {
+        const nextHistory = appendDecisionBrief(
+          decisionBriefHistory,
+          nextResult.output.decisionBrief,
+        );
+        if (nextHistory !== decisionBriefHistory) onDecisionBriefHistoryChange(nextHistory);
+      }
     });
 
     return () => {
       active = false;
     };
-  }, [evidence]);
+  }, [decisionBriefHistory, evidence, onDecisionBriefHistoryChange]);
+
+  const currentBrief = decisionBriefHistory.briefs.at(-1);
 
   return (
     <main className="bg-foundation min-h-screen px-4 py-5 sm:px-6 sm:py-8">
@@ -56,7 +76,7 @@ function GuardianIntelligenceView({ evidence, onReturnToLearning }: GuardianInte
         </header>
 
         {result?.status === 'ready' ? (
-          <ReasoningExperience reasoning={result.output} />
+          <ReasoningExperience reasoning={result.output} decisionBrief={currentBrief} />
         ) : (
           <ReasoningStatus result={result} />
         )}
@@ -93,7 +113,13 @@ function ReasoningStatus({ result }: { result: ReasoningResult | null }) {
   );
 }
 
-function ReasoningExperience({ reasoning }: { reasoning: ReasoningOutput }) {
+function ReasoningExperience({
+  reasoning,
+  decisionBrief,
+}: {
+  reasoning: ReasoningOutput;
+  decisionBrief?: DecisionBrief;
+}) {
   const leadingHypothesis = reasoning.hypotheses.find(
     (hypothesis) => hypothesis.status === 'Leading',
   );
@@ -103,9 +129,15 @@ function ReasoningExperience({ reasoning }: { reasoning: ReasoningOutput }) {
     <>
       <motion.div initial="hidden" animate="visible" variants={cardReveal}>
         <div className="max-w-2xl space-y-3 px-1 sm:px-2">
-          <p className="text-guardian-blue text-sm font-medium">Guardian is beginning to reason.</p>
+          <p className="text-guardian-blue text-sm font-medium">
+            {reasoning.decisionPublication.mode === 'decision'
+              ? 'Guardian has a working strategic judgment.'
+              : 'Guardian is still learning before it judges.'}
+          </p>
           <h1 className="text-text-primary text-[1.875rem] leading-[1.12] font-semibold tracking-[-0.045em] sm:text-[2.5rem]">
-            Here is how I&apos;m currently seeing the company.
+            {reasoning.decisionPublication.mode === 'decision'
+              ? 'Here is the decision context I believe is ready to hold.'
+              : 'Here is how I&apos;m currently seeing the company.'}
           </h1>
           <p className="text-text-secondary max-w-xl text-base leading-6">
             This is a working view, not a conclusion. It will change as Guardian learns more about
@@ -116,6 +148,7 @@ function ReasoningExperience({ reasoning }: { reasoning: ReasoningOutput }) {
 
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_15rem] xl:gap-12">
         <section className="space-y-6">
+          <DecisionPublicationCard reasoning={reasoning} brief={decisionBrief} />
           {leadingHypothesis && (
             <ReasoningSection label="Current direction">
               <CurrentViewCard view={reasoning.currentStrategicView} />
@@ -216,6 +249,73 @@ function CurrentViewCard({ view }: { view: ReasoningOutput['currentStrategicView
         <p className="text-text-secondary text-sm leading-5">{view.confidenceRationale}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function DecisionPublicationCard({
+  reasoning,
+  brief,
+}: {
+  reasoning: ReasoningOutput;
+  brief?: DecisionBrief;
+}) {
+  if (reasoning.decisionPublication.mode === 'learning') {
+    return (
+      <ReasoningSection label="Learning mode">
+        <Card className="bg-surface/70 shadow-none">
+          <CardContent className="space-y-2 px-4 py-4 sm:px-5">
+            <p className="text-text-primary text-sm font-medium">
+              Guardian is not publishing a strategic judgment yet.
+            </p>
+            <p className="text-text-secondary text-sm leading-5">
+              {reasoning.decisionPublication.reason}
+            </p>
+          </CardContent>
+        </Card>
+      </ReasoningSection>
+    );
+  }
+
+  if (!brief) return null;
+
+  return (
+    <ReasoningSection label={`Decision brief · Version ${brief.version}`}>
+      <Card>
+        <CardHeader className="gap-3 px-5 py-5 sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="default">Current strategic focus</Badge>
+            <ConfidenceBadge confidence={brief.confidence} />
+          </div>
+          <CardTitle className="text-2xl leading-[1.2] tracking-[-0.03em]">
+            {brief.strategicFocus.title}
+          </CardTitle>
+          <p className="text-text-secondary text-base leading-6">{brief.whyThisMatters}</p>
+        </CardHeader>
+        <CardContent className="space-y-4 px-5 pb-5 sm:px-6">
+          {brief.strategicFocus.kind === 'linked_pair' && (
+            <div>
+              <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
+                Linked decision pair
+              </p>
+              <p className="text-text-secondary mt-2 text-sm leading-5">
+                {brief.strategicFocus.linkedFocuses.join(' and ')}. {brief.strategicFocus.whyLinked}
+              </p>
+            </div>
+          )}
+          <EvidenceList label="What supports this judgment" items={brief.supportingEvidence} />
+          <div>
+            <p className="text-text-secondary text-xs font-medium tracking-[0.08em] uppercase">
+              Alternative interpretation
+            </p>
+            <p className="text-text-secondary mt-2 text-sm leading-5">
+              {brief.alternativeInterpretation}
+            </p>
+          </div>
+          <EvidenceList label="What could change this focus" items={brief.transitionConditions} />
+          <p className="text-text-secondary text-sm leading-5">{brief.nextLearningObjective}</p>
+        </CardContent>
+      </Card>
+    </ReasoningSection>
   );
 }
 

@@ -101,6 +101,22 @@ export class MockReasoningProvider implements ReasoningProvider {
           expectedConfidenceEffect: 'clarify',
         },
       },
+      decisionReadiness: {
+        mode: 'learning',
+        evidenceSufficiency: 'developing',
+        evidenceConsistency: 'sufficient',
+        hypothesisSeparation: 'developing',
+        criticalUnknowns: ['How prospective customers discover the company.'],
+        decisionStability: 'developing',
+        rationale:
+          'Guardian has useful working hypotheses, but an important customer-discovery uncertainty remains.',
+      },
+      decisionPublication: {
+        mode: 'learning',
+        reason:
+          'Guardian needs clearer evidence about customer discovery before publishing judgment.',
+      },
+      decisionBrief: null,
     };
   }
 }

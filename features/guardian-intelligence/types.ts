@@ -4,6 +4,9 @@ export type EvidenceKind = 'founder_response' | 'understanding_summary' | 'added
 export type EvidenceCertainty = 'confirmed' | 'founder_claim' | 'inferred' | 'assumption';
 export type NextCognitiveAction =
   'ask' | 'clarify' | 'challenge' | 'explain' | 'ready_for_guidance';
+export type GuardianMode = 'learning' | 'decision';
+export type ReadinessLevel = 'limited' | 'developing' | 'sufficient';
+export type StrategicFocusKind = 'single' | 'linked_pair';
 
 export type FounderEvidence = {
   id: string;
@@ -83,6 +86,46 @@ export type DecisionContext = {
   };
 };
 
+export type DecisionReadiness = {
+  mode: GuardianMode;
+  evidenceSufficiency: ReadinessLevel;
+  evidenceConsistency: ReadinessLevel;
+  hypothesisSeparation: ReadinessLevel;
+  criticalUnknowns: string[];
+  decisionStability: ReadinessLevel;
+  rationale: string;
+};
+
+export type StrategicFocus = {
+  kind: StrategicFocusKind;
+  title: string;
+  linkedFocuses: string[];
+  whyLinked: string | null;
+};
+
+export type DecisionBriefDraft = {
+  strategicFocus: StrategicFocus;
+  whyThisMatters: string;
+  supportingEvidence: EvidenceReference[];
+  alternativeInterpretation: string;
+  remainingUncertainty: string[];
+  decisionReadiness: DecisionReadiness;
+  nextLearningObjective: string;
+  transitionConditions: string[];
+  confidence: ConfidenceLevel;
+};
+
+export type DecisionPublication = {
+  mode: GuardianMode;
+  reason: string;
+};
+
+export type DecisionBrief = DecisionBriefDraft & {
+  id: string;
+  version: number;
+  sessionId: string;
+};
+
 export type StrategicModel = {
   understanding: UnderstandingUpdate[];
   strategicStrengths: string[];
@@ -99,6 +142,9 @@ export type ReasoningOutput = {
   currentStrategicView: CurrentStrategicView;
   perspectiveShift: PerspectiveShift | null;
   decisionContext: DecisionContext;
+  decisionReadiness: DecisionReadiness;
+  decisionPublication: DecisionPublication;
+  decisionBrief: DecisionBriefDraft | null;
 };
 
 export type ReasoningRequest = {
