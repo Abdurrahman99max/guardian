@@ -31,35 +31,6 @@ const hypothesisSchema = z.object({
   status: z.enum(['Active', 'Weakening', 'Rejected', 'Leading']),
 });
 
-const decisionReadinessSchema = z.object({
-  mode: z.enum(['learning', 'decision']),
-  evidenceSufficiency: z.enum(['limited', 'developing', 'sufficient']),
-  evidenceConsistency: z.enum(['limited', 'developing', 'sufficient']),
-  hypothesisSeparation: z.enum(['limited', 'developing', 'sufficient']),
-  criticalUnknowns: z.array(z.string().min(1)),
-  decisionStability: z.enum(['limited', 'developing', 'sufficient']),
-  rationale: z.string().min(1),
-});
-
-const strategicFocusSchema = z.object({
-  kind: z.enum(['single', 'linked_pair']),
-  title: z.string().min(1),
-  linkedFocuses: z.array(z.string().min(1)).max(2),
-  whyLinked: z.string().min(1).nullable(),
-});
-
-const decisionBriefDraftSchema = z.object({
-  strategicFocus: strategicFocusSchema,
-  whyThisMatters: z.string().min(1),
-  supportingEvidence: z.array(evidenceReferenceSchema),
-  alternativeInterpretation: z.string().min(1),
-  remainingUncertainty: z.array(z.string().min(1)),
-  decisionReadiness: decisionReadinessSchema,
-  nextLearningObjective: z.string().min(1),
-  transitionConditions: z.array(z.string().min(1)),
-  confidence: z.enum(['Low', 'Moderate', 'High']),
-});
-
 export const reasoningOutputSchema = z.object({
   evidenceReview: z.object({
     confirmedEvidence: z.array(evidenceReferenceSchema),
@@ -118,10 +89,4 @@ export const reasoningOutputSchema = z.object({
       expectedConfidenceEffect: z.enum(['increase', 'decrease', 'clarify']),
     }),
   }),
-  decisionReadiness: decisionReadinessSchema,
-  decisionPublication: z.object({
-    mode: z.enum(['learning', 'decision']),
-    reason: z.string().min(1),
-  }),
-  decisionBrief: decisionBriefDraftSchema.nullable(),
 });
