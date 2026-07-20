@@ -142,25 +142,38 @@ export async function createStructuredReasoning(
   model: string,
   { evidence }: ReasoningRequest,
 ): Promise<ReasoningOutput> {
-  const response = await client.responses.parse({
-    model,
-    input: [
-      { role: 'system', content: reasoningInstructions },
-      {
-        role: 'user',
-        content: JSON.stringify({ evidence }),
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await client.responses.parse({
+      model,
+      input: [
+        {
+          role: 'system',
+          content:
+            attempt === 0
+              ? reasoningInstructions
+              : `${reasoningInstructions}\n\nYour previous attempt did not meet Guardian's evidence and confidence rules. Reassess the evidence conservatively. Do not use unsupported strategic labels, do not assign High confidence without confirmed evidence, and resolve material ambiguity through clarification.`,
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({ evidence }),
+        },
+      ],
+      text: {
+        format: zodTextFormat(reasoningOutputSchema, 'guardian_reasoning'),
       },
-    ],
-    text: {
-      format: zodTextFormat(reasoningOutputSchema, 'guardian_reasoning'),
-    },
-  });
+    });
 
-  const output = response.output_parsed;
+    const output = response.output_parsed;
 
-  if (!output) throw new ReasoningOutputValidationError();
+    if (!output) continue;
 
-  validateReasoningOutput(output, evidence);
+    try {
+      validateReasoningOutput(output, evidence);
+      return { ...output, evidence };
+    } catch (error) {
+      if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
+    }
+  }
 
-  return { ...output, evidence };
+  throw new ReasoningOutputValidationError();
 }
