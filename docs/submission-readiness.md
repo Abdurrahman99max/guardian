@@ -1,6 +1,6 @@
 # Submission readiness
 
-This is the final engineering check before demo production. It is written so a reviewer can understand, run, and assess Guardian without unpublished context.
+Use this as the final release check before recording. A reviewer should be able to understand, run, and assess Guardian without needing any background from me.
 
 ## Before sharing the repository
 
@@ -21,6 +21,7 @@ This is the final engineering check before demo production. It is written so a r
 
 - [ ] Configure the same server-side reasoning environment variables in the deployed environment and redeploy after changing them.
 - [ ] Confirm a representative founder scenario completes a live reasoning request without browser-console errors.
+- [ ] Run the calibrated Ledgerline scenario from the [Demo Conversation Script](./demo-conversation-script.md) and confirm it publishes Decision Brief Version 1.
 - [ ] Confirm that a contradictory scenario remains in Learning Mode and asks for clarification rather than presenting a confident judgment.
 - [ ] Confirm the Strategic Journal shows current and recent strategic evolution during the demo session.
 - [ ] Have a reliable demo scenario ready; do not expose provider keys or private founder information in the recording.

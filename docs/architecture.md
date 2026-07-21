@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document explains Guardian's permanent boundaries: how founder evidence becomes a strategic experience without coupling the interface to a model provider or storage implementation.
+This is the architectural contract I use to keep Guardian's interface, reasoning providers, and storage separate as the product grows.
 
 ## The system boundary
 

@@ -41,6 +41,16 @@ This repository is the Build Week implementation of that philosophy: a polished 
 4. **Decision Brief** — when ready, Guardian presents a provisional strategic focus with confidence, supporting evidence, alternatives, and conditions for change.
 5. **Strategic Journal** — the session preserves how strategic thinking evolved without rewriting prior Decision Briefs.
 
+## Build Week MVP scope
+
+I deliberately kept this Build Week release focused on Guardian's core strategic reasoning workflow:
+
+```text
+Conversation -> Working Picture -> Readiness -> Decision Brief -> Strategic Journal
+```
+
+That lets the demo show the product's central claim end to end: Guardian learns before it publishes a judgment, and it shows the evidence and uncertainty behind that judgment. Account creation, durable workspaces, multi-user collaboration, cross-device continuity, document ingestion, enterprise integrations, external monitoring, and strategic recommendations are not part of this release. They are deliberate next steps, not capabilities being presented as complete today.
+
 ## Reasoning architecture
 
 ```text
@@ -70,6 +80,8 @@ The supporting notes explain one part of the product and architecture at a time:
 - [Design principles](./docs/design-principles.md)
 - [Future direction](./docs/future-direction.md)
 - [Submission readiness](./docs/submission-readiness.md)
+- [Canonical demo conversation](./docs/demo-conversation-script.md)
+- [Demo Director's Package](./docs/demo-directors-package.md)
 
 ## Quick start
 
@@ -133,7 +145,7 @@ Restart the local server after changing an environment variable.
 
 ### Sample validation scenarios
 
-Guardian does not yet include a dedicated automated test suite. The release check uses the commands below together with two manual scenarios: one representative early-stage company and one contradictory company description. The latter should remain in Learning Mode and ask for clarification rather than publish a confident Decision Brief. The full pre-submission flow is in [Submission readiness](./docs/submission-readiness.md).
+Guardian does not yet include a dedicated automated test suite. The release check combines the commands below with the calibrated Ledgerline scenario, which should publish a provisional Decision Brief, and a contradictory scenario, which should remain in Learning Mode and ask for clarification. The full pre-submission flow is in [Submission readiness](./docs/submission-readiness.md).
 
 ## Common commands
 
@@ -180,9 +192,9 @@ I used GPT-5.6 through Guardian's OpenAI reasoning provider, configured with `OP
 
 I used Codex as an implementation partner throughout Build Week: to establish the Next.js foundation and design system, implement the provider-independent reasoning boundary, audit live provider reliability, validate the build, and maintain the documentation. I retained ownership of product decisions, strategic boundaries, and Guardian's founder-facing philosophy.
 
-## Current Build Week boundaries
+## What this release intentionally leaves out
 
-Guardian currently uses live reasoning with session-backed strategic continuity. It does not yet include authentication, durable storage, document intelligence, external monitoring, collaboration, or strategic recommendations. Those omissions are intentional: this version demonstrates disciplined understanding and judgment before broader capability.
+Guardian uses live reasoning with session-backed strategic continuity. It does not include authentication, durable storage, document intelligence, external monitoring, collaboration, or strategic recommendations. This is intentional: I wanted to validate disciplined understanding and judgment before expanding the product surface.
 
 ## The Future of Guardian
 

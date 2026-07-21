@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document describes Guardian's direction after Build Week without presenting future work as already delivered. It matters because the product vision is larger than any single demo while its current boundaries remain intentional.
+This is where I want Guardian to go after Build Week. It separates the long-term product vision from what is actually in the demo today.
 
 ## The direction
 

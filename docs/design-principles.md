@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document captures the interface decisions that make Guardian feel like a strategic product rather than an AI chat interface. It matters because visual restraint is part of founder trust.
+This is the design bar for Guardian: a strategic product, not an AI chat interface. Visual restraint is part of earning founder trust.
 
 ## Product character
 

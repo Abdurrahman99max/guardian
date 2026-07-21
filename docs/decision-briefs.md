@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document explains how Guardian earns the right to publish a strategic judgment. A Decision Brief is not advice; it is a structured, provisional decision context.
+This is the rule for when Guardian may publish a strategic judgment. A Decision Brief is not advice; it is a structured, provisional decision context.
 
 ## Learning Mode and Decision Mode
 

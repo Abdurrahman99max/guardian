@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document explains how Guardian preserves strategic continuity. The Strategic Journal is not chat history or a generic memory store; it is the evidence-led lineage of the company's strategic thinking.
+This is how Guardian preserves strategic continuity. The Strategic Journal is not chat history or a generic memory store; it is the evidence-led lineage of a company's strategic thinking.
 
 ## What it preserves
 

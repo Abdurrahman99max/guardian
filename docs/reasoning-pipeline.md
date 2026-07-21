@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document explains how Guardian turns founder evidence into a disciplined, provisional strategic view. It matters because Guardian is designed to be trustworthy, not merely fluent.
+This is the path Guardian follows from founder evidence to a provisional strategic view. The point is trust, not fluent output.
 
 ## Pipeline
 
