@@ -2,9 +2,11 @@
 
 **A strategic reasoning partner for founders.**
 
-Founders do not usually lack information. They lack a durable way to connect what they know, identify what remains uncertain, and decide which question matters next.
+[Live application](https://guardian-pi-navy.vercel.app/) · [Documentation](./docs/) · [Submission readiness](./docs/submission-readiness.md)
 
-Guardian exists to reduce that uncertainty. It learns the company before it offers a strategic view, keeps competing explanations visible, and makes the evidence behind its current thinking understandable.
+Founders rarely lack information. The harder problem is connecting what is already known, seeing what remains uncertain, and deciding which question matters next.
+
+I built Guardian to reduce that uncertainty. It learns the company before it offers a strategic view, keeps competing explanations visible, and makes the evidence behind its current thinking understandable.
 
 > The product is not the conversation. The product is the evolving strategic model of the company.
 
@@ -57,7 +59,9 @@ Founder Experience
 
 The UI does not know whether reasoning comes from OpenAI, Groq, or a future provider. Providers produce the same typed `ReasoningOutput`; Guardian owns readiness, publication, and continuity.
 
-Read the focused architecture notes in [`docs/`](./docs):
+## Documentation
+
+The supporting notes explain one part of the product and architecture at a time:
 
 - [Architecture](./docs/architecture.md)
 - [Reasoning pipeline](./docs/reasoning-pipeline.md)
@@ -81,7 +85,6 @@ Read the focused architecture notes in [`docs/`](./docs):
 git clone https://github.com/Abdurrahman99max/guardian.git
 cd guardian
 npm ci
-npm run dev
 ```
 
 Create the local environment file before starting the server:
@@ -92,6 +95,12 @@ cp .env.example .env.local
 
 # Windows PowerShell
 Copy-Item .env.example .env.local
+```
+
+Then start the application:
+
+```bash
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -115,6 +124,16 @@ GROQ_REASONING_MODEL=openai/gpt-oss-120b
 
 Keys are read only on the server. Never prefix them with `NEXT_PUBLIC_` and never commit `.env.local`.
 Restart the local server after changing an environment variable.
+
+### Troubleshooting
+
+- **Live reasoning is unavailable:** confirm that `REASONING_PROVIDER` matches the configured key, restart the local server, and check the selected provider's account, model, and usage limits.
+- **A fresh install or build fails:** use Node.js 20 or later, remove local dependencies if necessary, then run `npm ci` again.
+- **A provider response is withheld:** this is intentional when the provider cannot return valid structured reasoning. Guardian preserves the collected evidence rather than presenting an invented strategic view.
+
+### Sample validation scenarios
+
+Guardian does not yet include a dedicated automated test suite. The release check uses the commands below together with two manual scenarios: one representative early-stage company and one contradictory company description. The latter should remain in Learning Mode and ask for clarification rather than publish a confident Decision Brief. The full pre-submission flow is in [Submission readiness](./docs/submission-readiness.md).
 
 ## Common commands
 
@@ -151,15 +170,15 @@ Guardian is organized by product responsibility rather than page type. The impor
 - **History is preserved.** A Decision Brief evolves through lineage; it is not silently overwritten.
 - **Founder agency remains primary.** Guardian explains an observation and its evidence; the founder owns the decision.
 
-## Build Week development
+## How I used GPT-5.6 and Codex during Build Week
 
 ### GPT-5.6
 
-Guardian's OpenAI reasoning provider is configured through `OPENAI_REASONING_MODEL` and defaults to `gpt-5.6-sol`. It produces the typed, evidence-led reasoning output that Guardian evaluates before it can publish a Decision Brief. The provider boundary also supports Groq for operational flexibility without changing Guardian's reasoning contract or user experience.
+I used GPT-5.6 through Guardian's OpenAI reasoning provider, configured with `OPENAI_REASONING_MODEL` and defaulting to `gpt-5.6-sol`. It produces typed, evidence-led reasoning output that Guardian evaluates before publishing a Decision Brief. The same provider boundary supports Groq for operational flexibility without changing Guardian's reasoning contract or user experience.
 
 ### Codex
 
-Codex served as Guardian's implementation partner throughout Build Week: establishing the Next.js foundation and design system, implementing the provider-independent reasoning boundary, auditing live provider reliability, validating the build, and maintaining the documentation. Product decisions, strategic boundaries, and founder-facing philosophy remain explicitly defined by the project team.
+I used Codex as an implementation partner throughout Build Week: to establish the Next.js foundation and design system, implement the provider-independent reasoning boundary, audit live provider reliability, validate the build, and maintain the documentation. I retained ownership of product decisions, strategic boundaries, and Guardian's founder-facing philosophy.
 
 ## Current Build Week boundaries
 

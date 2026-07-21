@@ -1,15 +1,15 @@
 # Submission readiness
 
-This checklist is the final engineering handoff before demo production. It confirms that a reviewer can understand, run, and assess Guardian without needing unpublished context.
+This is the final engineering check before demo production. It is written so a reviewer can understand, run, and assess Guardian without unpublished context.
 
-## Repository review
+## Before sharing the repository
 
-- [ ] The repository is accessible to reviewers. If it remains private, add every required reviewer before submission.
-- [ ] The README explains the problem, Guardian's intentional boundaries, its architecture, setup, live-reasoning configuration, commands, and future direction.
-- [ ] No API keys, `.env.local` files, recordings, or other sensitive material are committed.
-- [ ] `docs/` contains focused explanations of the architecture, reasoning pipeline, Decision Briefs, Strategic Journal, design system, and future direction.
+- [ ] Make sure the repository is accessible to reviewers. If it remains private, add every required reviewer before submission.
+- [ ] Check that the README explains the problem, Guardian's intentional boundaries, architecture, setup, live-reasoning configuration, commands, and future direction.
+- [ ] Confirm that no API keys, `.env.local` files, recordings, or other sensitive material are committed.
+- [ ] Keep `docs/` focused on the architecture, reasoning pipeline, Decision Briefs, Strategic Journal, design system, and future direction.
 
-## Fresh-clone verification
+## Verify a fresh clone
 
 - [ ] Use Node.js 20 or later.
 - [ ] Run `npm ci` from a new checkout.
@@ -17,7 +17,7 @@ This checklist is the final engineering handoff before demo production. It confi
 - [ ] Run `npm run format:check`, `npm run lint`, and `npm run build` before the final push.
 - [ ] Confirm that `npm run start` serves the completed production build.
 
-## Live reasoning and demo checks
+## Check the live experience
 
 - [ ] Configure the same server-side reasoning environment variables in the deployed environment and redeploy after changing them.
 - [ ] Confirm a representative founder scenario completes a live reasoning request without browser-console errors.
@@ -25,10 +25,10 @@ This checklist is the final engineering handoff before demo production. It confi
 - [ ] Confirm the Strategic Journal shows current and recent strategic evolution during the demo session.
 - [ ] Have a reliable demo scenario ready; do not expose provider keys or private founder information in the recording.
 
-## Build Week handoff
+## Finish the Build Week handoff
 
-- [ ] Confirm the final submission includes the project description, demo video, source repository, and any required materials listed by OpenAI Build Week.
-- [ ] Submit Codex feedback through the official [Codex Use & Feedback form](https://openai.com/form/codex-project-showcase-and-feedback/).
+- [ ] Confirm that the final submission includes the project description, demo video, source repository, and any required materials listed by OpenAI Build Week.
+- [ ] Submit feedback about Codex through the official [Codex Use & Feedback form](https://openai.com/form/codex-project-showcase-and-feedback/).
 - [ ] Verify the deployed URL and repository URL from an incognito or signed-out browser before sharing them.
 
 ## Remaining engineering risks
