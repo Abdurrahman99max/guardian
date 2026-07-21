@@ -65,6 +65,7 @@ Read the focused architecture notes in [`docs/`](./docs):
 - [Strategic Journal](./docs/strategic-journal.md)
 - [Design principles](./docs/design-principles.md)
 - [Future direction](./docs/future-direction.md)
+- [Submission readiness](./docs/submission-readiness.md)
 
 ## Quick start
 
@@ -80,8 +81,17 @@ Read the focused architecture notes in [`docs/`](./docs):
 git clone https://github.com/Abdurrahman99max/guardian.git
 cd guardian
 npm ci
-cp .env.example .env.local
 npm run dev
+```
+
+Create the local environment file before starting the server:
+
+```bash
+# macOS / Linux
+cp .env.example .env.local
+
+# Windows PowerShell
+Copy-Item .env.example .env.local
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -104,6 +114,7 @@ GROQ_REASONING_MODEL=openai/gpt-oss-120b
 ```
 
 Keys are read only on the server. Never prefix them with `NEXT_PUBLIC_` and never commit `.env.local`.
+Restart the local server after changing an environment variable.
 
 ## Common commands
 
@@ -139,6 +150,16 @@ Guardian is organized by product responsibility rather than page type. The impor
 - **Providers are replaceable.** The UI consumes typed output, never provider-specific responses.
 - **History is preserved.** A Decision Brief evolves through lineage; it is not silently overwritten.
 - **Founder agency remains primary.** Guardian explains an observation and its evidence; the founder owns the decision.
+
+## Build Week development
+
+### GPT-5.6
+
+Guardian's OpenAI reasoning provider is configured through `OPENAI_REASONING_MODEL` and defaults to `gpt-5.6-sol`. It produces the typed, evidence-led reasoning output that Guardian evaluates before it can publish a Decision Brief. The provider boundary also supports Groq for operational flexibility without changing Guardian's reasoning contract or user experience.
+
+### Codex
+
+Codex served as Guardian's implementation partner throughout Build Week: establishing the Next.js foundation and design system, implementing the provider-independent reasoning boundary, auditing live provider reliability, validating the build, and maintaining the documentation. Product decisions, strategic boundaries, and founder-facing philosophy remain explicitly defined by the project team.
 
 ## Current Build Week boundaries
 
