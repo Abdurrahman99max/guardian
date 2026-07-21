@@ -20,17 +20,9 @@ The final feeling should be quiet relief. The founder is still responsible for t
 | Judgment   | Reveal the evidence-led strategic view, alternatives, confidence rationale, and next learning objective. | Understanding → Trust                 |
 | Continuity | Close on the promise that Guardian preserves the evolution of thinking without replacing the founder.    | Trust → Respect → Relief → Aspiration |
 
-## 3. Demo scenario
+## 3. Canonical demo scenario
 
-Use this fictional company consistently. It is deliberately specific enough to produce useful reasoning while remaining an early-stage company with honest unknowns.
-
-| Guardian question     | Founder response to paste                                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Problem               | Freelancers spend hours each month categorising expenses, reconciling transactions, and chasing tax-ready records. The work is repetitive, error-prone, and takes attention away from paid client work. |
-| Customer              | Independent freelancers and one-person service businesses who manage their own books and have irregular income. The cost is highest near month-end and tax deadlines.                                   |
-| Business Model        | A self-serve subscription product priced per freelancer, starting with a free trial. Accountants may eventually refer clients, but the initial path is direct.                                          |
-| Current Stage         | We have a working prototype and ten interview participants. We are testing whether people will connect their accounts and return each month; we do not yet have paid retention.                         |
-| Competitive Advantage | The initial advantage is a workflow that turns transaction context into explainable, tax-ready decisions for freelancers. This is still a hypothesis: trust and recurring use must be earned.           |
+Use the [Demo Conversation Script](./demo-conversation-script.md) as the single source of truth for the founder, every response to paste, expected UI progression, recording checkpoints, and recovery paths.
 
 Do not add invented traction, revenue, or certainty to make the output sound stronger. The scenario is meant to demonstrate disciplined judgment, not a success story.
 
