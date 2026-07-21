@@ -1,21 +1,29 @@
 import type { ReasoningRequest, ReasoningResult } from './types';
 
 export async function requestReasoning(request: ReasoningRequest): Promise<ReasoningResult> {
-  const response = await fetch('/api/reasoning', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
+  const fallback: ReasoningResult = {
+    status: 'unavailable',
+    message:
+      'Guardian could not form a reliable view just now. Your understanding is still preserved.',
+  };
 
-  const result = (await response.json()) as ReasoningResult;
+  try {
+    const response = await fetch('/api/reasoning', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
 
-  if (!response.ok && result.status !== 'unavailable') {
-    return {
-      status: 'unavailable',
-      message:
-        'Guardian could not form a reliable view yet. Your understanding is still preserved.',
-    };
+    const result = (await response.json()) as ReasoningResult;
+
+    if (!result || (result.status !== 'ready' && result.status !== 'unavailable')) {
+      return fallback;
+    }
+
+    if (!response.ok && result.status !== 'unavailable') return fallback;
+
+    return result;
+  } catch {
+    return fallback;
   }
-
-  return result;
 }

@@ -8,7 +8,21 @@ import type { ReasoningResult } from '@/features/guardian-intelligence/types';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const parsedRequest = reasoningRequestSchema.safeParse(await request.json());
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json<ReasoningResult>(
+      {
+        status: 'unavailable',
+        message: 'Guardian needs complete, usable evidence before it can form a working view.',
+      },
+      { status: 400 },
+    );
+  }
+
+  const parsedRequest = reasoningRequestSchema.safeParse(payload);
 
   if (!parsedRequest.success) {
     return NextResponse.json<ReasoningResult>(
