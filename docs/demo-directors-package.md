@@ -24,7 +24,7 @@ The final feeling should be quiet relief. The founder is still responsible for t
 
 Use the [Demo Conversation Script](./demo-conversation-script.md) as the single source of truth for the founder, every response to paste, expected UI progression, recording checkpoints, and recovery paths.
 
-Do not add invented traction, revenue, or certainty to make the output sound stronger. The scenario is meant to demonstrate disciplined judgment, not a success story.
+Use only the exact fictional evidence in the canonical script. Do not add extra traction, revenue, or certainty to make the output sound stronger. The scenario demonstrates disciplined judgment, not a success story.
 
 ## 4. Timestamped storyboard
 
@@ -137,7 +137,7 @@ No person cutouts, arrows, exaggerated reaction faces, gradients, badges, or mor
 
 - [ ] Confirm the live URL loads in a fresh private/incognito browser window.
 - [ ] Confirm the deployed reasoning provider has a valid key, model access, and available quota.
-- [ ] Complete one dry run using the exact fictional scenario in this document.
+- [ ] Complete one dry run using the exact fictional scenario in the Demo Conversation Script.
 - [ ] Close unrelated tabs and applications; disable notifications and browser extensions.
 - [ ] Set browser zoom to 100% and screen resolution to 1920 × 1080.
 - [ ] Select a quiet room and test the microphone at the final speaking distance.
