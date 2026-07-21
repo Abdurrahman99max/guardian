@@ -465,13 +465,11 @@ export async function createJsonObjectReasoning(
   const promptEvidence = buildPromptEvidence(evidence);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model,
-      max_output_tokens: maximumReasoningOutputTokens,
-      reasoning: {
-        effort: 'low',
-      },
-      input: [
+      max_completion_tokens: maximumReasoningOutputTokens,
+      reasoning_effort: 'low',
+      messages: [
         {
           role: 'system',
           content: instructionsForAttempt(attempt, true),
@@ -481,13 +479,16 @@ export async function createJsonObjectReasoning(
           content: JSON.stringify({ evidence: promptEvidence }),
         },
       ],
-      text: {
-        format: { type: 'json_object' },
+      response_format: {
+        type: 'json_object',
       },
     });
 
     try {
-      return completeReasoningOutput(parseJsonReasoningOutput(response.output_text), evidence);
+      return completeReasoningOutput(
+        parseJsonReasoningOutput(response.choices[0]?.message.content ?? ''),
+        evidence,
+      );
     } catch (error) {
       if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
     }
