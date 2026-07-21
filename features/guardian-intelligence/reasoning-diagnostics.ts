@@ -46,5 +46,6 @@ export function logReasoningFailure(provider: string, error: unknown) {
     code: apiError?.code ?? null,
     type: apiError?.type ?? null,
     requestId: apiError?.requestID ?? null,
+    validationReason: error instanceof ReasoningOutputValidationError ? error.reason : null,
   });
 }

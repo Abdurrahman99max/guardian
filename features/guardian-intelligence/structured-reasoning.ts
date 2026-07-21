@@ -29,12 +29,14 @@ Reasoning rules:
 
 Perspective shifts require longitudinal history: return perspectiveShift as null. A downstream gate handles readiness. Be concise: one or two sentences per prose field and only the evidence, unknowns, and list items needed to explain the current view. Do not mention models, prompts, APIs, or implementation details.`;
 
-const jsonObjectContract = `Return one complete JSON object. Include every field in this shape: evidenceReview (confirmedEvidence, founderClaims, inferences, assumptions, unsupportedLeaps); tensions (id, statement, evidence, materiality, clarificationNeeded); model (understanding, strategicStrengths, strategicRisks, unknownAreas); hypotheses (exactly three items, each with id, title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale, status); currentStrategicView (title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale); perspectiveShift; and decisionContext (summary, nextAction, rationale, question, informationGain with uncertaintiesAddressed, hypothesesDifferentiated, expectedConfidenceEffect). Each evidence reference contains evidenceId, supportType, and explanation. Use arrays when no items apply and null only for perspectiveShift or question.`;
+const jsonObjectContract = `Return one complete JSON object. Include every field in this shape: evidenceReview (confirmedEvidence, founderClaims, inferences, assumptions, unsupportedLeaps); tensions (id, statement, evidence, materiality, clarificationNeeded); model (understanding, strategicStrengths, strategicRisks, unknownAreas); hypotheses (exactly three items, each with id, title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale, status); currentStrategicView (title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale); perspectiveShift; and decisionContext (summary, nextAction, rationale, question, informationGain with uncertaintiesAddressed, hypothesesDifferentiated, expectedConfidenceEffect). Each evidence reference contains evidenceId, supportType, and explanation. supportType is confirmed, founder_claim, inferred, or assumption. materiality is material or minor. understanding change is created, strengthened, weakened, contradicted, or expanded. Hypothesis status is Active, Weakening, Rejected, or Leading; confidence is Low, Moderate, or High; nextAction is ask, clarify, challenge, explain, or ready_for_guidance; expectedConfidenceEffect is increase, decrease, or clarify. Use arrays when no items apply and null only for perspectiveShift or question. Return JSON only, keep every string brief, and cite only the evidence necessary to support each conclusion.`;
 
 const maximumReasoningOutputTokens = 2400;
 
 export class ReasoningOutputValidationError extends Error {
-  constructor() {
+  constructor(
+    readonly reason: 'invalid_json' | 'output_contract' | 'epistemic_contract' = 'output_contract',
+  ) {
     super('Guardian received reasoning that did not satisfy its output contract.');
   }
 }
@@ -385,7 +387,7 @@ function validateReasoningOutput(
         output.decisionContext.informationGain.expectedConfidenceEffect !== 'clarify')) ||
     (actionRequiresQuestion && (!output.decisionContext.question || !hasInformationGain))
   ) {
-    throw new ReasoningOutputValidationError();
+    throw new ReasoningOutputValidationError('epistemic_contract');
   }
 
   return calibrateConfidence(output, hasConfirmedEvidence, needsClarification);
@@ -397,7 +399,7 @@ function completeReasoningOutput(
 ): ReasoningOutput {
   const parsedOutput = reasoningOutputSchema.safeParse(output);
 
-  if (!parsedOutput.success) throw new ReasoningOutputValidationError();
+  if (!parsedOutput.success) throw new ReasoningOutputValidationError('output_contract');
 
   const normalizedOutput = prioritizeClarificationForMaterialTensions(
     stabilizeReasoningOutput(normalizeEvidenceSupportTypes(parsedOutput.data, evidence), evidence),
@@ -411,7 +413,7 @@ function parseJsonReasoningOutput(outputText: string) {
   try {
     return JSON.parse(outputText);
   } catch {
-    throw new ReasoningOutputValidationError();
+    throw new ReasoningOutputValidationError('invalid_json');
   }
 }
 
@@ -466,6 +468,9 @@ export async function createJsonObjectReasoning(
     const response = await client.responses.create({
       model,
       max_output_tokens: maximumReasoningOutputTokens,
+      reasoning: {
+        effort: 'low',
+      },
       input: [
         {
           role: 'system',
