@@ -36,6 +36,7 @@ const maximumReasoningOutputTokens = 2400;
 export class ReasoningOutputValidationError extends Error {
   constructor(
     readonly reason: 'invalid_json' | 'output_contract' | 'epistemic_contract' = 'output_contract',
+    readonly issues: string[] = [],
   ) {
     super('Guardian received reasoning that did not satisfy its output contract.');
   }
@@ -399,7 +400,15 @@ function completeReasoningOutput(
 ): ReasoningOutput {
   const parsedOutput = reasoningOutputSchema.safeParse(output);
 
-  if (!parsedOutput.success) throw new ReasoningOutputValidationError('output_contract');
+  if (!parsedOutput.success) {
+    throw new ReasoningOutputValidationError(
+      'output_contract',
+      parsedOutput.error.issues.slice(0, 6).map((issue) => {
+        const path = issue.path.length > 0 ? issue.path.join('.') : '$';
+        return `${path}:${issue.code}`;
+      }),
+    );
+  }
 
   const normalizedOutput = prioritizeClarificationForMaterialTensions(
     stabilizeReasoningOutput(normalizeEvidenceSupportTypes(parsedOutput.data, evidence), evidence),
