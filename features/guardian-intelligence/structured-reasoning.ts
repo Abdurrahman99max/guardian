@@ -426,6 +426,130 @@ function parseJsonReasoningOutput(outputText: string) {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeAreaKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-');
+}
+
+function normalizeEvidenceReferences(value: unknown, evidence: ReasoningRequest['evidence']) {
+  if (!Array.isArray(value)) return value;
+
+  const evidenceById = new Map(evidence.map((item) => [item.id, item]));
+
+  return value.map((reference) => {
+    if (typeof reference !== 'string') return reference;
+
+    const source = evidenceById.get(reference);
+
+    return source
+      ? {
+          evidenceId: source.id,
+          supportType: source.certainty,
+          explanation: 'Direct reference to the supplied founder evidence.',
+        }
+      : reference;
+  });
+}
+
+function normalizeUnderstanding(value: unknown, evidence: ReasoningRequest['evidence']) {
+  if (Array.isArray(value) || !isRecord(value)) return value;
+
+  if ('areaId' in value) return [value];
+
+  const evidenceByArea = new Map(
+    evidence.flatMap((item) => [
+      [normalizeAreaKey(item.areaId), item],
+      [normalizeAreaKey(item.areaLabel), item],
+    ]),
+  );
+  const entries = Object.entries(value);
+  const normalizedEntries = entries.map(([areaKey, summary]) => {
+    const source = evidenceByArea.get(normalizeAreaKey(areaKey));
+
+    if (!source || typeof summary !== 'string') return null;
+
+    return {
+      areaId: source.areaId,
+      areaLabel: source.areaLabel,
+      summary,
+      change: 'expanded',
+    };
+  });
+
+  return normalizedEntries.every((entry) => entry !== null) ? normalizedEntries : value;
+}
+
+function normalizeJsonObjectReasoningShape(
+  output: unknown,
+  evidence: ReasoningRequest['evidence'],
+) {
+  if (!isRecord(output)) return output;
+
+  const normalizeReferences = (value: unknown) => normalizeEvidenceReferences(value, evidence);
+  const evidenceReview = isRecord(output.evidenceReview)
+    ? {
+        ...output.evidenceReview,
+        confirmedEvidence: normalizeReferences(output.evidenceReview.confirmedEvidence),
+        founderClaims: normalizeReferences(output.evidenceReview.founderClaims),
+        inferences: normalizeReferences(output.evidenceReview.inferences),
+        assumptions: normalizeReferences(output.evidenceReview.assumptions),
+      }
+    : output.evidenceReview;
+  const tensions = Array.isArray(output.tensions)
+    ? output.tensions.map((tension) =>
+        isRecord(tension)
+          ? { ...tension, evidence: normalizeReferences(tension.evidence) }
+          : tension,
+      )
+    : output.tensions;
+  const hypotheses = Array.isArray(output.hypotheses)
+    ? output.hypotheses.map((hypothesis) =>
+        isRecord(hypothesis)
+          ? {
+              ...hypothesis,
+              supportingEvidence: normalizeReferences(hypothesis.supportingEvidence),
+              conflictingEvidence: normalizeReferences(hypothesis.conflictingEvidence),
+            }
+          : hypothesis,
+      )
+    : output.hypotheses;
+  const currentStrategicView = isRecord(output.currentStrategicView)
+    ? {
+        ...output.currentStrategicView,
+        supportingEvidence: normalizeReferences(output.currentStrategicView.supportingEvidence),
+        conflictingEvidence: normalizeReferences(output.currentStrategicView.conflictingEvidence),
+      }
+    : output.currentStrategicView;
+  const perspectiveShift = isRecord(output.perspectiveShift)
+    ? {
+        ...output.perspectiveShift,
+        evidence: normalizeReferences(output.perspectiveShift.evidence),
+      }
+    : output.perspectiveShift;
+  const model = isRecord(output.model)
+    ? {
+        ...output.model,
+        understanding: normalizeUnderstanding(output.model.understanding, evidence),
+      }
+    : output.model;
+
+  return {
+    ...output,
+    evidenceReview,
+    tensions,
+    hypotheses,
+    currentStrategicView,
+    perspectiveShift,
+    model,
+  };
+}
+
 export async function createStructuredReasoning(
   client: OpenAI,
   model: string,
@@ -495,7 +619,10 @@ export async function createJsonObjectReasoning(
 
     try {
       return completeReasoningOutput(
-        parseJsonReasoningOutput(response.choices[0]?.message.content ?? ''),
+        normalizeJsonObjectReasoningShape(
+          parseJsonReasoningOutput(response.choices[0]?.message.content ?? ''),
+          evidence,
+        ),
         evidence,
       );
     } catch (error) {
