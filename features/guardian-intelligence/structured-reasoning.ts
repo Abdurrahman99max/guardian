@@ -622,6 +622,7 @@ export async function createJsonObjectReasoning(
       model,
       max_completion_tokens: maximumReasoningOutputTokens,
       reasoning_effort: 'low',
+      temperature: 0,
       messages: [
         {
           role: 'system',
