@@ -1,0 +1,35 @@
+1
+00:00:00,000 --> 00:00:07,000
+Founders rarely lack information. The harder problem is knowing what deserves confidence before a decision is made.
+
+2
+00:00:07,000 --> 00:00:19,000
+Guardian begins by learning the company. Each question explains the uncertainty it is trying to reduce, so the conversation never becomes a questionnaire.
+
+3
+00:00:19,000 --> 00:00:40,000
+As context arrives, Guardian builds a working picture. The founder can refine it at any point; nothing is treated as final simply because it was said once.
+
+4
+00:00:40,000 --> 00:00:49,000
+Before reasoning begins, Guardian reflects that picture back. The founder remains in control of what the model understands.
+
+5
+00:00:49,000 --> 00:00:58,000
+Only then does Guardian review the evidence, compare competing explanations, and check whether a strategic judgment has been earned.
+
+6
+00:00:58,000 --> 00:01:05,000
+It does not rush from information to advice. It first separates evidence, assumptions, uncertainty, and alternatives.
+
+7
+00:01:05,000 --> 00:01:18,000
+When the evidence is sufficient, Guardian publishes a provisional Decision Brief. The strategic focus is clear, but its confidence is explained—not asserted.
+
+8
+00:01:18,000 --> 00:01:27,000
+Alternative interpretations stay visible, along with the evidence that could change the current view.
+
+9
+00:01:27,000 --> 00:01:35,000
+Guardian does not replace founder judgment. It gives founders a clearer basis for it. Good decisions are earned, not generated.
