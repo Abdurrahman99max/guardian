@@ -33,6 +33,9 @@ const jsonObjectContract = `Return one complete JSON object. Include every field
 
 const maximumReasoningOutputTokens = 2400;
 
+const jsonObjectUnknownsClarification =
+  'unknownAreas and every unknowns array contain concise plain-text strings, never objects.';
+
 export class ReasoningOutputValidationError extends Error {
   constructor(
     readonly reason: 'invalid_json' | 'output_contract' | 'epistemic_contract' = 'output_contract',
@@ -48,7 +51,7 @@ function instructionsForAttempt(attempt: number, jsonObjectMode = false) {
       ? ''
       : `\n\nYour previous attempt did not meet Guardian's evidence and confidence rules. Reassess the evidence conservatively. Do not use unsupported strategic labels, do not assign High confidence without confirmed evidence, and resolve material ambiguity through clarification.`;
 
-  return `${reasoningInstructions}${jsonObjectMode ? `\n\n${jsonObjectContract}` : ''}${retryInstructions}`;
+  return `${reasoningInstructions}${jsonObjectMode ? `\n\n${jsonObjectContract}\n\n${jsonObjectUnknownsClarification}` : ''}${retryInstructions}`;
 }
 
 function buildPromptEvidence(evidence: ReasoningRequest['evidence']) {
@@ -457,6 +460,20 @@ function normalizeEvidenceReferences(value: unknown, evidence: ReasoningRequest[
   });
 }
 
+function normalizeTextItems(value: unknown) {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item) => {
+    if (!isRecord(item)) return item;
+
+    const text = Object.values(item).filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return text.length > 0 ? text.join(': ') : item;
+  });
+}
+
 function normalizeUnderstanding(value: unknown, evidence: ReasoningRequest['evidence']) {
   if (Array.isArray(value) || !isRecord(value)) return value;
 
@@ -515,6 +532,7 @@ function normalizeJsonObjectReasoningShape(
               ...hypothesis,
               supportingEvidence: normalizeReferences(hypothesis.supportingEvidence),
               conflictingEvidence: normalizeReferences(hypothesis.conflictingEvidence),
+              unknowns: normalizeTextItems(hypothesis.unknowns),
             }
           : hypothesis,
       )
@@ -524,6 +542,7 @@ function normalizeJsonObjectReasoningShape(
         ...output.currentStrategicView,
         supportingEvidence: normalizeReferences(output.currentStrategicView.supportingEvidence),
         conflictingEvidence: normalizeReferences(output.currentStrategicView.conflictingEvidence),
+        unknowns: normalizeTextItems(output.currentStrategicView.unknowns),
       }
     : output.currentStrategicView;
   const perspectiveShift = isRecord(output.perspectiveShift)
@@ -536,6 +555,7 @@ function normalizeJsonObjectReasoningShape(
     ? {
         ...output.model,
         understanding: normalizeUnderstanding(output.model.understanding, evidence),
+        unknownAreas: normalizeTextItems(output.model.unknownAreas),
       }
     : output.model;
 
