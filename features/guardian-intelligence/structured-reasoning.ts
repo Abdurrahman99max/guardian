@@ -32,6 +32,7 @@ Perspective shifts require longitudinal history: return perspectiveShift as null
 const jsonObjectContract = `Return one complete JSON object. Include every field in this shape: evidenceReview (confirmedEvidence, founderClaims, inferences, assumptions, unsupportedLeaps); tensions (id, statement, evidence, materiality, clarificationNeeded); model (understanding, strategicStrengths, strategicRisks, unknownAreas); hypotheses (exactly three items, each with id, title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale, status); currentStrategicView (title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale); perspectiveShift; and decisionContext (summary, nextAction, rationale, question, informationGain with uncertaintiesAddressed, hypothesesDifferentiated, expectedConfidenceEffect). An EvidenceRef is always an object: { evidenceId: a supplied evidence ID, supportType: confirmed|founder_claim|inferred|assumption, explanation: brief reason }. Every evidence, supportingEvidence, conflictingEvidence, confirmedEvidence, founderClaims, inferences, and assumptions array contains EvidenceRef objects—never strings or bare IDs. model.understanding is always an array of objects: { areaId, areaLabel, summary, change }, where change is created, strengthened, weakened, contradicted, or expanded; never return one object or a keyed map. materiality is material or minor. Hypothesis status is Active, Weakening, Rejected, or Leading; confidence is Low, Moderate, or High; nextAction is ask, clarify, challenge, explain, or ready_for_guidance; expectedConfidenceEffect is increase, decrease, or clarify. Use arrays when no items apply and null only for perspectiveShift or question. Return JSON only, keep every string brief, and cite only the evidence necessary to support each conclusion.`;
 
 const maximumReasoningOutputTokens = 2400;
+const groqReasoningSeed = 20260721;
 
 const jsonObjectUnknownsClarification =
   'unknownAreas and every unknowns array contain concise plain-text strings, never objects.';
@@ -623,6 +624,7 @@ export async function createJsonObjectReasoning(
       max_completion_tokens: maximumReasoningOutputTokens,
       reasoning_effort: 'low',
       temperature: 0,
+      seed: groqReasoningSeed,
       messages: [
         {
           role: 'system',
