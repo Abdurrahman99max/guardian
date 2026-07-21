@@ -1,6 +1,6 @@
 # Guardian Demo Director's Package
 
-This package directs a 1 minute 35 second product demo recorded from the live Guardian deployment. It is designed for a calm founder voice, a clean browser capture, and restrained editing. It does not require any product changes.
+This package directs a 2 minute 19 second product demo recorded from the live Guardian deployment. It is designed for a calm founder voice, a clean browser capture, and restrained editing. It does not require any product changes.
 
 ## 1. Demo philosophy
 
