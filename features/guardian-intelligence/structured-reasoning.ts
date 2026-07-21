@@ -29,12 +29,23 @@ Reasoning rules:
 
 Perspective shifts require longitudinal history: return perspectiveShift as null. A downstream gate handles readiness. Be concise: one or two sentences per prose field and only the evidence, unknowns, and list items needed to explain the current view. Do not mention models, prompts, APIs, or implementation details.`;
 
+const jsonObjectContract = `Return one complete JSON object. Include every field in this shape: evidenceReview (confirmedEvidence, founderClaims, inferences, assumptions, unsupportedLeaps); tensions (id, statement, evidence, materiality, clarificationNeeded); model (understanding, strategicStrengths, strategicRisks, unknownAreas); hypotheses (exactly three items, each with id, title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale, status); currentStrategicView (title, explanation, supportingEvidence, conflictingEvidence, unknowns, confidence, confidenceRationale); perspectiveShift; and decisionContext (summary, nextAction, rationale, question, informationGain with uncertaintiesAddressed, hypothesesDifferentiated, expectedConfidenceEffect). Each evidence reference contains evidenceId, supportType, and explanation. Use arrays when no items apply and null only for perspectiveShift or question.`;
+
 const maximumReasoningOutputTokens = 2400;
 
 export class ReasoningOutputValidationError extends Error {
   constructor() {
     super('Guardian received reasoning that did not satisfy its output contract.');
   }
+}
+
+function instructionsForAttempt(attempt: number, jsonObjectMode = false) {
+  const retryInstructions =
+    attempt === 0
+      ? ''
+      : `\n\nYour previous attempt did not meet Guardian's evidence and confidence rules. Reassess the evidence conservatively. Do not use unsupported strategic labels, do not assign High confidence without confirmed evidence, and resolve material ambiguity through clarification.`;
+
+  return `${reasoningInstructions}${jsonObjectMode ? `\n\n${jsonObjectContract}` : ''}${retryInstructions}`;
 }
 
 function buildPromptEvidence(evidence: ReasoningRequest['evidence']) {
@@ -380,6 +391,30 @@ function validateReasoningOutput(
   return calibrateConfidence(output, hasConfirmedEvidence, needsClarification);
 }
 
+function completeReasoningOutput(
+  output: unknown,
+  evidence: ReasoningRequest['evidence'],
+): ReasoningOutput {
+  const parsedOutput = reasoningOutputSchema.safeParse(output);
+
+  if (!parsedOutput.success) throw new ReasoningOutputValidationError();
+
+  const normalizedOutput = prioritizeClarificationForMaterialTensions(
+    stabilizeReasoningOutput(normalizeEvidenceSupportTypes(parsedOutput.data, evidence), evidence),
+  );
+  const calibratedOutput = validateReasoningOutput(normalizedOutput, evidence);
+
+  return { ...applyDecisionPublicationGate(calibratedOutput, evidence), evidence };
+}
+
+function parseJsonReasoningOutput(outputText: string) {
+  try {
+    return JSON.parse(outputText);
+  } catch {
+    throw new ReasoningOutputValidationError();
+  }
+}
+
 export async function createStructuredReasoning(
   client: OpenAI,
   model: string,
@@ -394,10 +429,7 @@ export async function createStructuredReasoning(
       input: [
         {
           role: 'system',
-          content:
-            attempt === 0
-              ? reasoningInstructions
-              : `${reasoningInstructions}\n\nYour previous attempt did not meet Guardian's evidence and confidence rules. Reassess the evidence conservatively. Do not use unsupported strategic labels, do not assign High confidence without confirmed evidence, and resolve material ambiguity through clarification.`,
+          content: instructionsForAttempt(attempt),
         },
         {
           role: 'user',
@@ -414,11 +446,43 @@ export async function createStructuredReasoning(
     if (!output) continue;
 
     try {
-      const normalizedOutput = prioritizeClarificationForMaterialTensions(
-        stabilizeReasoningOutput(normalizeEvidenceSupportTypes(output, evidence), evidence),
-      );
-      const calibratedOutput = validateReasoningOutput(normalizedOutput, evidence);
-      return { ...applyDecisionPublicationGate(calibratedOutput, evidence), evidence };
+      return completeReasoningOutput(output, evidence);
+    } catch (error) {
+      if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
+    }
+  }
+
+  throw new ReasoningOutputValidationError();
+}
+
+export async function createJsonObjectReasoning(
+  client: OpenAI,
+  model: string,
+  { evidence }: ReasoningRequest,
+): Promise<ReasoningOutput> {
+  const promptEvidence = buildPromptEvidence(evidence);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await client.responses.create({
+      model,
+      max_output_tokens: maximumReasoningOutputTokens,
+      input: [
+        {
+          role: 'system',
+          content: instructionsForAttempt(attempt, true),
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({ evidence: promptEvidence }),
+        },
+      ],
+      text: {
+        format: { type: 'json_object' },
+      },
+    });
+
+    try {
+      return completeReasoningOutput(parseJsonReasoningOutput(response.output_text), evidence);
     } catch (error) {
       if (!(error instanceof ReasoningOutputValidationError) || attempt === 1) throw error;
     }

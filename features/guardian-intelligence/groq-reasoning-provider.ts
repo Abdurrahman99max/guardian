@@ -3,7 +3,7 @@ import 'server-only';
 import OpenAI from 'openai';
 
 import type { ReasoningProvider } from './reasoning-provider';
-import { createStructuredReasoning } from './structured-reasoning';
+import { createJsonObjectReasoning } from './structured-reasoning';
 import type { ReasoningOutput, ReasoningRequest } from './types';
 
 const groqBaseUrl = 'https://api.groq.com/openai/v1';
@@ -19,6 +19,6 @@ export class GroqReasoningProvider implements ReasoningProvider {
   }
 
   reason(request: ReasoningRequest): Promise<ReasoningOutput> {
-    return createStructuredReasoning(this.client, this.model, request);
+    return createJsonObjectReasoning(this.client, this.model, request);
   }
 }
